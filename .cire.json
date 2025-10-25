@@ -1,0 +1,31 @@
+{
+	"name": "My Cire Project",
+	"version": "1.0.0",
+	"description": "Static website generated with Cire - providing IDE-like experiences for documentation",
+	"input": {
+		"root": "./src",
+		"include": ["**/*.ts", "**/*.js"],
+		"exclude": [
+			"**/*.test.ts",
+			"**/*.spec.ts",
+			"**/*.test.js",
+			"**/*.spec.js",
+			"node_modules/**",
+			"dist/**",
+			"**/*.d.ts"
+		],
+		"language": "typescript"
+	},
+	"output": {
+		"directory": "./dist",
+		"baseUrl": "/"
+	},
+	"lsp": {
+		"indexPath": "./index.scip",
+		"provider": "scip"
+	},
+	"theme": {
+		"name": "default",
+		"customCss": []
+	}
+}
