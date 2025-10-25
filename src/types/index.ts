@@ -59,7 +59,7 @@ export interface HoverInfo {
 // Definition location for goto definition
 export interface DefinitionLocation {
 	filePath: string;
-    pos: Position;
+	pos: Position;
 }
 
 export type TokenInfo = {
@@ -85,12 +85,12 @@ export interface PageMetadata {
 }
 
 export type ColorScheme = {
-    TokenType: string;
-    Style: string[];
-}
+	TokenType: string;
+	Style: string[];
+};
 
 export interface HighLighter {
-    highlight(fileIR: FileIR): TokenInfo[]
+	highlight(fileIR: FileIR): TokenInfo[];
 }
 
 // Generator interface
