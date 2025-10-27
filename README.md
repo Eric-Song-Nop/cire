@@ -1,6 +1,6 @@
 # Cire
 
-`Cire` is a static website generator implemented in `TypeScript` that provides IDE-like experiences for static documentation websites. It transforms source code with comments into interactive documentation featuring syntax highlighting, hover documentation, and goto definition functionality.
+`Cire` is a static website generator implemented in `TypeScript` that provides IDE-like experiences for static documentation websites. It transforms source code with comments into interactive documentation featuring syntax analysis, hover documentation, and goto definition functionality.
 
 ## Technical Details
 
@@ -12,8 +12,8 @@ This project utilizes both [Tree-sitter](https://tree-sitter.github.io/tree-sitt
 The workflow:
 1. Run LSIF/SCIP generator to create index files for your project
 2. Cire processes source code and separates block comments from code
-3. Apply Tree-sitter for highlighting and SCIP for LSP information
-4. Generate intermediate representation with all highlighting and LSP data
+3. Apply Tree-sitter for syntax analysis and SCIP for LSP information
+4. Generate intermediate representation with all analysis and LSP data
 5. Create final static website files
 
 ## Installation
@@ -48,7 +48,7 @@ Cire provides a command-line interface with two main commands:
 
 #### 1. Highlight Command (Currently Available)
 
-Generates HTML documentation with syntax highlighting from a single source file.
+Generates HTML documentation with syntax analysis from a single source file.
 
 ```bash
 # Basic usage
@@ -67,7 +67,7 @@ cire highlight -i src/example.ts -v
 **Command Options:**
 - `-i, --input <file>`: Input source code file (required)
 - `-o, --output <file>`: Output HTML file (default: `input.html`)
-- `-l, --language <lang>`: Language for syntax highlighting (default: `typescript`)
+- `-l, --language <lang>`: Language for syntax analysis (default: `typescript`)
 - `-v, --verbose`: Enable verbose logging
 
 **Example:**
@@ -171,9 +171,9 @@ pnpm clean
 ## Current Status
 
 ### ✅ Implemented Features
-- **TypeScript Syntax Highlighting**: Tree-sitter based syntax highlighting
+- **TypeScript Syntax Analysis**: Tree-sitter based syntax analysis
 - **Token Processing Pipeline**: Merge and sort token passes for HTML generation
-- **CLI Interface**: Command-line tool for single file highlighting
+- **CLI Interface**: Command-line tool for single file analysis
 - **HTML Generation**: Static HTML output with embedded styling
 - **Testing**: Comprehensive unit tests with high coverage
 
@@ -201,14 +201,14 @@ Source Code → LSIF/SCIP Index → Token Processing → HTML Generation → Sta
 ### Core Components
 
 - **Token Processing** (`src/passes/`): Handles token merging, sorting, and highlighting
-- **Syntax Highlighting** (`src/highlighter/`): Tree-sitter integration for syntax analysis
+- **Syntax Analysis** (`src/analyzer/`): Tree-sitter integration for syntax analysis
 - **HTML Generation** (`src/generator/`): Converts processed tokens to HTML output
 - **Configuration** (`src/config/`): Manages project configuration and settings
 - **CLI Interface** (`src/cli.ts`): Command-line tool for easy usage
 
 ### Token Processing Pipeline
 
-1. **Raw Token Generation**: Tree-sitter creates syntax tokens
+1. **Raw Token Generation**: Tree-sitter creates syntax tokens through Analyzer
 2. **Token Sorting**: `SortTokenPass` ensures consistent processing order
 3. **Token Merging**: `MergeTokenPass` resolves overlapping spans for HTML rendering
 4. **HTML Generation**: Converts processed tokens to styled HTML output

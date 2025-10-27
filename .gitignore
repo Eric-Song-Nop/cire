@@ -51,3 +51,5 @@ coverage/
 examples/*/dist/
 examples/*/node_modules/
 examples/*.html
+
+*.scip

@@ -2,112 +2,118 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## 项目概述
 
-Cire is a static website generator implemented in TypeScript that provides IDE-like experiences for static websites. It transforms source code with comments into interactive documentation websites featuring syntax highlighting, hover documentation, and goto definition functionality.
+Cire 是一个用 TypeScript 实现的静态网站生成器，专门为静态文档网站提供 IDE 式的交互体验。它能够将带有注释的源代码转换为具有语法分析、悬停文档和跳转定义功能的交互式文档。
 
-## Core Architecture
+## 核心开发命令
 
-### Technology Stack
-- **Language**: TypeScript
-- **Package Manager**: pnpm, always use `ni` for the right package manager
-- **Syntax Highlighting**: Tree-sitter parser
-- **LSP Integration**: LSIF/SCIP for embedding language server information
-- **Output**: Pure HTML/CSS + minimal JavaScript for interactions
-
-### Workflow Pipeline
-```
-Source Code → LSIF/SCIP Generation → Cire Generator → Static Website
+### 开发工作流
+```bash
+pnpm dev          # TypeScript 编译监视模式
+pnpm build        # 构建项目到 dist/
+pnpm start        # 运行构建后的 CLI (node dist/cli.js)
+pnpm clean        # 删除构建产物
 ```
 
-1. **Input Processing**: Tree-sitter separates block comments from code
-2. **Two-pass Generation**:
-   - Pass 1: Tree-sitter for syntax highlighting
-   - Pass 2: SCIP for LSP information extraction
-3. **IR Generation**: Creates intermediate representation with highlighting and LSP data
-4. **Website Generation**: Converts IR to final HTML files
+### 代码质量
+```bash
+pnpm lint         # Biome 代码检查
+pnpm format       # Biome 代码格式化
+pnpm lint:fix     # 自动修复可修复的问题
+```
 
-### Key Components (Planned)
-- **Comment Parser**: Extracts block comments and converts to Markdown
-- **Code Block Processor**: Applies syntax highlighting using Tree-sitter
-- **LSP Integration**: Maps LSIF/SCIP data to static interactions
-- **HTML Generator**: Creates templated website structure
-- **Configuration System**: JSON-based project configuration (.cire files)
+### 测试
+```bash
+pnpm test         # 运行所有测试
+pnpm test:ui      # 启动 Vitest UI 界面
+pnpm test:run     # 一次性运行测试（无监视）
+pnpm test:coverage # 生成覆盖率报告
+```
 
-## Development Commands
+### CLI 使用
+```bash
+# 语法高亮（已实现）
+cire highlight -i src/example.ts [-o docs/example.html] [-l typescript] [-v]
 
-### BMAD Core Framework
-This project uses BMAD™ Core for project management. Use the following slash commands:
+# 构建网站（计划中）
+cire build [-c .cire] [-o dist/] [-w] [-v]
+```
 
-- `/BMad:dev` - Activate development agent (James) for implementation
-- `/BMad:facilitate-brainstorming-session` - Run structured brainstorming sessions
-- `/BMad:document-project` - Generate comprehensive project documentation
+## 架构概述
 
-### Development Agent Commands
-When using the `/BMad:dev` agent, these commands are available (use `*` prefix):
+### 核心流程
+```
+源代码 → Tree-sitter 解析 → Token 处理管道 → HTML 生成 → 静态网站
+```
 
-- `*help` - Show all available commands
-- `*develop-story` - Implement development stories sequentially
-- `*explain` - Get detailed explanations of implemented work
-- `*review-qa` - Run quality assurance checks
-- `*run-tests` - Execute linting and tests
-- `*exit` - Exit development agent mode
+### 主要模块
 
-## Project Structure
+1. **分析器模块** (`src/analyzer/`)
+   - `TSHighlighter`: 基于 Tree-sitter 的 TypeScript 语法分析器
+   - 实现 `Analyzer` 接口，支持扩展其他语言
 
-### Current State
-- **Planning Phase**: MVP functionality defined, ready for development
-- **Core Documentation**:
-  - `README.md` - Technical overview and architecture
-  - `docs/brainstorming-session-results.md` - Detailed MVP planning
-- **BMAD Framework**: Located in `.bmad-core/` with development workflows
-- **Agent Definitions**: Development agents and tasks in `.claude/commands/BMad/`
+2. **Token 处理管道** (`src/passes/`)
+   - `TokenInfoPass`: 基础 Token 信息提取
+   - `SortTokenPass`: Token 按 start position 排序
+   - `MergeTokenPass`: 处理重叠 Token 的合并逻辑
 
-### Planned Structure
-Based on MVP planning, the project will include:
-- `src/` - TypeScript source code
-- `src/parsers/` - Comment and code parsing logic
-- `src/generators/` - HTML and CSS generation
-- `src/lsp/` - LSIF/SCIP integration
-- `src/config/` - Configuration file handling
-- `templates/` - HTML templates and CSS frameworks
-- `examples/` - Sample projects for testing
+3. **生成器模块** (`src/generator/`)
+   - `HTMLGenerator`: 将 Token 转换为带样式的 HTML
+   - 包含完整的 HTML 文档模板
 
-## Development Standards
+4. **CLI 接口** (`src/cli.ts`)
+   - 使用 Commander.js 实现
+   - 支持 `highlight` 命令，`build` 命令计划中
 
-### Always Load Files
-The development agent automatically loads these files during activation:
-- `docs/architecture/coding-standards.md` (when created)
-- `docs/architecture/tech-stack.md` (when created)
-- `docs/architecture/source-tree.md` (when created)
+### 数据流设计
 
-### MVP Development Phases
-1. **Base Parser**: JSON configuration, comment extraction, source file scanning
-2. **HTML Generator**: Templates, CSS framework, navigation
-3. **Tree-sitter Integration**: TypeScript support, syntax highlighting
-4. **LSP Integration**: LSIF/SCIP parsing, hover documentation
-5. **Goto Definition**: Definition mapping, cross-page linking
-6. **Integration Testing**: End-to-end validation, error handling
+1. **源文件输入**: 读取 TypeScript 源代码
+2. **Tree-sitter 解析**: 生成语法树和提取 tokens
+3. **Token 处理管道**: 排序 → 合并 → 过滤
+4. **HTML 生成**: 应用 CSS 样式并生成完整 HTML 文档
 
-## Key Technical Decisions
+## 开发约定
 
-### MVP Scope
-- **Language Support**: TypeScript only (initially)
-- **Features**: Hover docs and goto definition required
-- **Output**: Pure HTML + CSS + minimal JS
-- **Configuration**: JSON-based (.cire files)
-- **Navigation**: Simple file list structure
+### 代码风格
+- 使用 4 空格缩进
+- 双引号字符串
+- TypeScript 严格模式
+- 详细的错误处理和日志输出
 
-### Architecture Principles
-- **Static Generation**: All IDE features implemented as static interactions
-- **Comment-Driven**: Content derived from block comments in source code
-- **Zero Learning Curve**: Uses existing development workflows
-- **Framework Agnostic**: Pure HTML/CSS output for maximum compatibility
+### 类型系统
+- 所有类型定义集中在 `src/types/index.ts`
+- 使用严格的 TypeScript 类型
+- 自定义错误类型体系 (`CireError`, `ConfigError` 等)
 
-## Notes for Development
+### 测试约定
+- 测试文件使用 `.test.ts` 扩展名
+- 使用 Vitest 作为测试框架
+- 测试文件与源文件同目录或 `__tests__` 目录
 
-- Project currently has no package.json, tsconfig.json, or source code - this is initial setup
-- Focus on implementing MVP features as defined in brainstorming documentation
-- Use BMAD framework development agent for structured implementation
-- All LSP information should be pre-generated via LSIF/SCIP tools
-- Target users are developers wanting to create documentation from existing codebases
+### 配置文件
+- 项目使用 `.cire` JSON 配置文件
+- 参考配置示例: `.cire.example`
+- 支持输入输出路径、语言、主题等配置
+
+## 重要技术细节
+
+### Token 处理管道
+Token 处理遵循严格的顺序：
+1. **排序**: 按 `range.start` 升序排列
+2. **合并**: 处理重叠的 Token 范围
+3. **过滤**: 移除无效或不需要的 Token
+
+### 错误处理
+- 使用统一的错误类型体系
+- 详细的错误消息和上下文信息
+- 支持优雅的错误恢复
+
+### 模块化设计
+- 清晰的模块边界和接口定义
+- 依赖注入模式支持测试和扩展
+- 每个模块有单一职责
+
+## Tool
+
+Use `scip` cli tool to inspect and test `index.scip` file generation and content
