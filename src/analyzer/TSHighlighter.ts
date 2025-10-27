@@ -50,7 +50,7 @@ export class TSHighLighter implements Analyzer {
 		const tree = this.parser.parse(sourceCode);
 
 		// 从模板文件读取查询语句
-		const queryPath = `templates/highlight/${this.lang}.scm`;
+		const queryPath = `templates/queries/${this.lang}/highlight.scm`;
 		const queryContent = fs.readFileSync(queryPath).toString();
 		const querier = new Parser.Query(this.parserLang, queryContent);
 
