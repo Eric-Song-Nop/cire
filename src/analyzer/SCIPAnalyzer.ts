@@ -72,10 +72,15 @@ export class SCIPAnalyzer implements Analyzer {
 			const span = this.convertSCIPRangeToTextSpan(occurrence.range);
 			if (!span) continue;
 
-			// Try to find symbol documentation from symbols in the document
-			const symbolInfo = document.symbols?.find(
+			// Try to find symbol documentation from symbols in the document first
+			let symbolInfo = document.symbols?.find(
 				(sym) => sym.symbol === occurrence.symbol,
 			);
+
+			// If not found in current document, search globally across all documents
+			if (!symbolInfo) {
+				symbolInfo = this.findSymbolGlobally(occurrence.symbol);
+			}
 
 			const doc: string[] = [];
 			// Add documentation if available
@@ -104,6 +109,34 @@ export class SCIPAnalyzer implements Analyzer {
 
 		console.log(`  🎯 Generated ${tokenInfos.length} hover tokens`);
 		return tokenInfos;
+	}
+
+	/**
+	 * Find symbol information across all documents in the SCIP index
+	 */
+	private findSymbolGlobally(
+		symbolName: string,
+	): scip.SymbolInformation | undefined {
+		if (!this.scipIndex?.documents) {
+			return undefined;
+		}
+
+		// Search through all documents for the symbol
+		for (const doc of this.scipIndex.documents) {
+			if (!doc.symbols) continue;
+
+			const symbolInfo = doc.symbols.find(
+				(sym) => sym.symbol === symbolName,
+			);
+			if (symbolInfo) {
+				console.log(
+					`  🌍 Found symbol in external document: ${doc.relative_path}`,
+				);
+				return symbolInfo;
+			}
+		}
+
+		return undefined;
 	}
 
 	private convertSCIPRangeToTextSpan(range: number[]): {

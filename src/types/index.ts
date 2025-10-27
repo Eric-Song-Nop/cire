@@ -78,6 +78,10 @@ export type ColorScheme = {
 	Style: string[];
 };
 
+/**
+ * Interface for analyzer
+ * Example analyzers: syntax highlighter, hover documentation extractor
+ */
 export interface Analyzer {
 	analyze(fileIR: FileIR): TokenInfo[];
 }
