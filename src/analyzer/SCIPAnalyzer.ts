@@ -14,9 +14,17 @@ export class SCIPAnalyzer implements Analyzer {
 		const reader = new BinaryReader(readFileSync(this.scipIndexPath));
 		// load with protobuf
 		this.scipIndex = scip.Index.deserialize(reader);
-		this.scipProjectRoot = path.resolve(
-			this.scipIndex.metadata.project_root,
-		);
+
+		// Handle project_root that might be in URI format (file:/path)
+		let projectRoot = this.scipIndex.metadata.project_root;
+		if (projectRoot.startsWith("file:")) {
+			// Remove file:// or file: prefix and decode URI
+			projectRoot = decodeURIComponent(
+				projectRoot.replace(/^file:\/+/, "/"),
+			);
+		}
+
+		this.scipProjectRoot = path.resolve(projectRoot);
 	}
 
 	analyze(fileIR: FileIR): TokenInfo[] {
@@ -29,23 +37,32 @@ export class SCIPAnalyzer implements Analyzer {
 		const documentsList = this.scipIndex.documents;
 
 		const document = documentsList.find((doc) => {
-			return (
-				fileIR.filePath ===
-				path.resolve(this.scipProjectRoot, doc.relative_path)
+			const docAbsolutePath = path.resolve(
+				this.scipProjectRoot,
+				doc.relative_path,
 			);
+			return fileIR.filePath === docAbsolutePath;
 		});
 
 		if (!document) {
 			console.warn(`File not found in SCIP index: ${fileIR.filePath}`);
 			return [];
 		}
-
 		return this.resolveHoverInfo(document);
 	}
 
 	private resolveHoverInfo(document: scip.Document): TokenInfo[] {
 		const occurrences = document.occurrences;
 		const tokenInfos: TokenInfo[] = [];
+
+		console.log(`🔍 Analyzing document: ${document.relative_path}`);
+		console.log(
+			`  📄 Found ${occurrences ? occurrences.length : 0} occurrences`,
+		);
+
+		if (!occurrences || occurrences.length === 0) {
+			return [];
+		}
 
 		for (const occurrence of occurrences) {
 			// Skip occurrences without range or symbol
@@ -56,24 +73,17 @@ export class SCIPAnalyzer implements Analyzer {
 			if (!span) continue;
 
 			// Try to find symbol documentation from symbols in the document
-			const symbolInfo = document.symbols.find(
+			const symbolInfo = document.symbols?.find(
 				(sym) => sym.symbol === occurrence.symbol,
 			);
-
-			const meta = [
-				{
-					type: "hover",
-					content: occurrence.symbol,
-				},
-			];
 
 			const doc: string[] = [];
 			// Add documentation if available
 			if (symbolInfo?.documentation) {
-				doc.concat(symbolInfo.documentation);
+				doc.push(...symbolInfo.documentation);
 			}
 			if (occurrence.override_documentation) {
-				doc.concat(occurrence.override_documentation);
+				doc.push(...occurrence.override_documentation);
 			}
 
 			if (doc.length === 0) continue;
@@ -92,6 +102,7 @@ export class SCIPAnalyzer implements Analyzer {
 			tokenInfos.push(tokenInfo);
 		}
 
+		console.log(`  🎯 Generated ${tokenInfos.length} hover tokens`);
 		return tokenInfos;
 	}
 

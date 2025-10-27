@@ -8,10 +8,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
-import { TSHighLighter } from "./analyzer/TSHighlighter";
-import { HTMLGenerator } from "./generator/HTMLGenerator";
-import { MergeTokenPass, SortTokenPass } from "./passes";
-import type { FileIR } from "./types";
+import { type WorkflowConfig, WorkflowManager } from "./core/WorkflowManager";
 
 const program = new Command();
 
@@ -22,27 +19,21 @@ program
 	)
 	.version("0.1.0");
 
+// Default command - generate HTML with syntax highlighting and SCIP hover
 program
-	.command("highlight")
-	.description(
-		"Generate HTML documentation with syntax highlighting from a single source file",
-	)
 	.requiredOption("-i, --input <file>", "Input source code file")
 	.option("-o, --output <file>", "Output HTML file (default: input.html)")
+	.option("-s, --scip <path>", "SCIP index file path for hover documentation")
 	.option(
 		"-l, --language <lang>",
 		"Language (default: typescript)",
 		"typescript",
 	)
+	.option("--no-highlight", "Disable syntax highlighting")
+	.option("--no-hover", "Disable hover documentation")
 	.option("-v, --verbose", "Enable verbose logging")
 	.action(async (options) => {
 		try {
-			if (options.verbose) {
-				console.log(
-					chalk.blue.bold("🔍 Starting syntax highlighting pipeline"),
-				);
-			}
-
 			// Resolve input file path
 			const inputFile = path.resolve(options.input);
 
@@ -62,74 +53,76 @@ program
 						`${path.basename(inputFile, path.extname(inputFile))}.html`,
 					);
 
+			// Validate SCIP index if hover is enabled
+			if (options.hover && options.scip && !fs.existsSync(options.scip)) {
+				console.error(
+					chalk.red.bold(
+						`❌ SCIP index file not found: ${options.scip}`,
+					),
+				);
+				process.exit(1);
+			}
+
+			// Create workflow configuration
+			const config: WorkflowConfig = {
+				syntaxHighlighting: options.highlight,
+				hoverDocumentation: options.hover && !!options.scip,
+				scipIndexPath: options.scip,
+				language: options.language,
+			};
+
+			// Initialize workflow manager
+			const workflow = new WorkflowManager(config);
+
 			if (options.verbose) {
+				console.log(
+					chalk.blue.bold(
+						"🚀 Starting Cire complete analysis pipeline",
+					),
+				);
 				console.log(chalk.gray(`📁 Input: ${inputFile}`));
 				console.log(chalk.gray(`📝 Output: ${outputFile}`));
+				console.log(chalk.gray(`🔤 Language: ${options.language}`));
+				console.log(
+					chalk.gray(
+						`✨ Syntax Highlighting: ${config.syntaxHighlighting}`,
+					),
+				);
+				console.log(
+					chalk.gray(
+						`🔍 Hover Documentation: ${config.hoverDocumentation}`,
+					),
+				);
+				if (config.scipIndexPath) {
+					console.log(
+						chalk.gray(`📊 SCIP Index: ${config.scipIndexPath}`),
+					);
+				}
+
+				const stats = workflow.getStats();
+				console.log(
+					chalk.gray(
+						`🔧 TSHighlighter: ${stats.syntaxHighlighter ? "✓" : "✗"}`,
+					),
+				);
+				console.log(
+					chalk.gray(
+						`🔧 SCIPAnalyzer: ${stats.scipAnalyzer ? "✓" : "✗"}`,
+					),
+				);
+				console.log();
 			}
 
 			// Create FileIR
-			const fileIR: FileIR = {
+			const fileIR = {
 				filePath: inputFile,
 				language: options.language,
 			};
 
-			console.log(
-				chalk.blue(
-					`🔍 Analyzing syntax with ${options.language} highlighter...`,
-				),
-			);
+			// Process file through workflow
+			const html = workflow.processFile(fileIR);
 
-			// Step 1: Generate syntax highlighting tokens
-			console.log(
-				chalk.blue(
-					`🔍 Analyzing syntax with ${options.language} highlighter...`,
-				),
-			);
-			const highlighter = new TSHighLighter(options.language);
-			const rawTokens = highlighter.analyze(fileIR);
-
-			if (options.verbose) {
-				console.log(
-					chalk.gray(
-						`   Found ${rawTokens.length} raw syntax tokens`,
-					),
-				);
-			} else {
-				console.log(
-					chalk.green(
-						`✨ Found ${rawTokens.length} raw syntax tokens`,
-					),
-				);
-			}
-
-			// Step 2: Process tokens with TokenInfoPass pipeline
-			console.log(chalk.blue(`🔄 Processing tokens with pipeline...`));
-			const sortPass = new SortTokenPass();
-			const mergePass = new MergeTokenPass();
-			const processedTokens = mergePass.process(
-				sortPass.process(rawTokens),
-			);
-
-			if (options.verbose) {
-				console.log(
-					chalk.gray(
-						`   Processed into ${processedTokens.length} merged tokens`,
-					),
-				);
-			} else {
-				console.log(
-					chalk.green(
-						`✨ Processed into ${processedTokens.length} merged tokens`,
-					),
-				);
-			}
-
-			// Step 3: Generate HTML
-			console.log(chalk.blue(`🎨 Generating HTML documentation...`));
-			const generator = new HTMLGenerator();
-			const html = generator.generate(fileIR, processedTokens);
-
-			// Step 3: Write output file
+			// Write output file
 			console.log(chalk.blue(`💾 Writing HTML...`));
 			fs.writeFileSync(outputFile, html);
 
@@ -141,6 +134,21 @@ program
 					`📁 Open ${outputFile} in your browser to view the result.`,
 				),
 			);
+
+			// Show feature summary
+			const stats = workflow.getStats();
+			console.log();
+			console.log(chalk.blue.bold("🎯 Features included:"));
+			if (stats.syntaxHighlighter) {
+				console.log(
+					chalk.green(`  ✓ Syntax highlighting (Tree-sitter)`),
+				);
+			}
+			if (stats.scipAnalyzer) {
+				console.log(chalk.green(`  ✓ Hover documentation (SCIP)`));
+			}
+			console.log(chalk.green(`  ✓ Token processing pipeline`));
+			console.log(chalk.green(`  ✓ Modern HTML output`));
 		} catch (error) {
 			console.error(
 				chalk.red.bold("❌ Error:"),

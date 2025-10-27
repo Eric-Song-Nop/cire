@@ -41,6 +41,7 @@ export interface CireConfig {
 
 // Intermediate representation for a file
 export interface FileIR {
+	// absolute file to the source code file
 	filePath: string;
 	language: string;
 }
