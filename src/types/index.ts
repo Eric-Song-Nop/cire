@@ -77,8 +77,8 @@ export type ColorScheme = {
 	Style: string[];
 };
 
-export interface HighLighter {
-	highlight(fileIR: FileIR): TokenInfo[];
+export interface Analyzer {
+	analyze(fileIR: FileIR): TokenInfo[];
 }
 
 // Generator interface

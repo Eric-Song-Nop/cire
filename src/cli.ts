@@ -86,7 +86,7 @@ program
 				),
 			);
 			const highlighter = new TSHighLighter(options.language);
-			const rawTokens = highlighter.highlight(fileIR);
+			const rawTokens = highlighter.analyze(fileIR);
 
 			if (options.verbose) {
 				console.log(

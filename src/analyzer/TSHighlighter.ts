@@ -1,11 +1,11 @@
 import fs from "node:fs";
-import type { FileIR, HighLighter, TokenInfo } from "../types";
+import type { Analyzer, FileIR, TokenInfo } from "../types";
 
 import Parser = require("tree-sitter");
 
 import TypeScriptLangs from "tree-sitter-typescript";
 
-export class TSHighLighter implements HighLighter {
+export class TSHighLighter implements Analyzer {
 	private parser = new Parser();
 
 	lang: string;
@@ -43,7 +43,7 @@ export class TSHighLighter implements HighLighter {
 		};
 	}
 
-	highlight(fileIR: FileIR): TokenInfo[] {
+	analyze(fileIR: FileIR): TokenInfo[] {
 		this.parser.setLanguage(this.parserLang);
 		const sourceCodePath = fileIR.filePath;
 		const sourceCode = fs.readFileSync(sourceCodePath).toString();
