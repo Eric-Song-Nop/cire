@@ -45,25 +45,13 @@ export interface FileIR {
 	language: string;
 }
 
-// Highlight information
-export interface HighlightInfo {
-	highlightClasses: string[];
-}
-
-// LSP hover information
-export interface HoverInfo {
-	content: string;
-	documentation?: string;
-}
-
-// Definition location for goto definition
-export interface DefinitionLocation {
-	filePath: string;
-	pos: Position;
-}
+type MetaInfo =
+	| { type: "highlight"; highlightClasses: string[] }
+	| { type: "hover"; content: string; documentation?: string }
+	| { type: "definition"; filePath: string; pos: Position };
 
 export type TokenInfo = {
-	meta: (HighlightInfo | HoverInfo | DefinitionLocation)[];
+	meta: MetaInfo[];
 	span: TextSpan;
 };
 
@@ -94,21 +82,8 @@ export interface HighLighter {
 }
 
 // Generator interface
-export interface Generator {
-	generate(fileIR: FileIR[]): Promise<GeneratedPage[]>;
-}
-
-// LSP Provider interface
-export interface LSPProvider {
-	loadIndex(indexPath: string): Promise<void>;
-	getHover(
-		filePath: string,
-		position: { line: number; column: number },
-	): Promise<HoverInfo | null>;
-	getDefinition(
-		filePath: string,
-		position: { line: number; column: number },
-	): Promise<DefinitionLocation | null>;
+export interface DocGenerator {
+	generate(fileIR: FileIR, info: TokenInfo[]): string;
 }
 
 // CLI options

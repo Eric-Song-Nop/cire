@@ -2,11 +2,11 @@
  * Configuration loader for .cire files
  */
 
-import { readFileSync, existsSync } from "fs";
-import { resolve, dirname } from "path";
-import { CireConfig, ConfigError } from "../types";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { type CireConfig, ConfigError } from "../types";
 
-export class ConfigLoader {
+export default class ConfigLoader {
 	/**
 	 * Load and validate configuration from a .cire file
 	 */
@@ -50,7 +50,10 @@ export class ConfigLoader {
 	/**
 	 * Validate configuration structure and required fields
 	 */
-	private static validateConfig(config: any, configPath: string): void {
+	private static validateConfig(
+		config: CireConfig,
+		configPath: string,
+	): void {
 		if (!config || typeof config !== "object") {
 			throw new ConfigError(
 				"Configuration must be a valid JSON object",
@@ -113,7 +116,7 @@ export class ConfigLoader {
 	/**
 	 * Validate input configuration
 	 */
-	private static validateInputConfig(input: any): boolean {
+	private static validateInputConfig(input: CireConfig["input"]): boolean {
 		if (!input || typeof input !== "object") {
 			return false;
 		}
@@ -149,7 +152,7 @@ export class ConfigLoader {
 	/**
 	 * Validate output configuration
 	 */
-	private static validateOutputConfig(output: any): boolean {
+	private static validateOutputConfig(output: CireConfig["output"]): boolean {
 		if (!output || typeof output !== "object") {
 			return false;
 		}
@@ -169,7 +172,7 @@ export class ConfigLoader {
 	/**
 	 * Validate LSP configuration
 	 */
-	private static validateLspConfig(lsp: any): boolean {
+	private static validateLspConfig(lsp: CireConfig["lsp"]): boolean {
 		if (!lsp || typeof lsp !== "object") {
 			return false;
 		}
@@ -222,7 +225,11 @@ export class ConfigLoader {
 		const configContent = JSON.stringify(defaultConfig, null, 2);
 
 		try {
-			require("fs").writeFileSync(configPath, configContent, "utf-8");
+			require("node:fs").writeFileSync(
+				configPath,
+				configContent,
+				"utf-8",
+			);
 		} catch (error) {
 			throw new ConfigError(
 				`Failed to create sample configuration: ${error instanceof Error ? error.message : error}`,
