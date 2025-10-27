@@ -1,0 +1,184 @@
+/* Cire Default Theme - Static Documentation Generator */
+
+/* Base styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Code block styles */
+pre {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+code {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* Hoverable token styles */
+.token-hoverable {
+    cursor: pointer;
+    border-bottom: 1px dotted #6c757d;
+    transition: all 0.2s ease;
+}
+
+.token-hoverable:hover {
+    background-color: #e3f2fd;
+    border-bottom-color: #2196f3;
+}
+
+/* Tooltip styles */
+.hover-tooltip {
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Segoe UI', sans-serif;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    max-width: 400px;
+    word-wrap: break-word;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    line-height: 1.5;
+}
+
+.hover-tooltip.visible {
+    opacity: 1;
+}
+
+.hover-tooltip .symbol-name {
+    font-weight: bold;
+    color: #4fc3f7;
+    margin-bottom: 4px;
+}
+
+.hover-tooltip .documentation {
+    color: #e0e0e0;
+    font-size: 12px;
+    white-space: pre-line;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #555;
+}
+
+.hover-tooltip .documentation p {
+    margin: 0 0 8px 0;
+}
+
+.hover-tooltip .documentation p:last-child {
+    margin-bottom: 0;
+}
+
+.hover-tooltip .documentation code {
+    background: #444;
+    color: #4fc3f7;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 11px;
+}
+
+.hover-tooltip .documentation pre {
+    background: #2a2a2a;
+    color: #e0e0e0;
+    padding: 8px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 11px;
+    margin: 4px 0;
+}
+
+.hover-tooltip .documentation ul,
+.hover-tooltip .documentation ol {
+    margin: 4px 0;
+    padding-left: 20px;
+}
+
+.hover-tooltip .documentation li {
+    margin: 2px 0;
+}
+
+.hover-tooltip .documentation em {
+    color: #ffeb3b;
+    font-style: italic;
+}
+
+.hover-tooltip .documentation strong {
+    color: #ffeb3b;
+    font-weight: bold;
+}
+
+.hover-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+/* Legacy token- prefixed syntax highlighting styles */
+.token-keyword { color: #0066cc; font-weight: bold; }
+.token-string { color: #008000; }
+.token-comment { color: #808080; font-style: italic; }
+.token-number { color: #ff6600; }
+.token-boolean { color: #ff6600; font-weight: bold; }
+.token-function { color: #795da3; }
+.token-type { color: #0086b3; }
+.token-builtin { color: #795da3; font-weight: bold; }
+.token-variable { color: #660066; }
+.token-parameter { color: #660066; font-style: italic; }
+.token-definition { font-weight: bold; border-bottom: 2px solid #ff6600; }
+
+/* Tree-sitter syntax highlighting styles (without token- prefix) */
+.keyword { color: #0066cc; font-weight: bold; }
+.string { color: #008000; }
+.string.special { color: #008000; font-weight: bold; }
+.comment { color: #808080; font-style: italic; }
+.number { color: #ff6600; }
+.constant { color: #ff6600; font-weight: bold; }
+.constant.builtin { color: #ff6600; font-weight: bold; }
+.function { color: #795da3; }
+.function.method { color: #795da3; }
+.function.builtin { color: #795da3; font-weight: bold; }
+.constructor { color: #795da3; font-weight: bold; }
+.type { color: #0086b3; }
+.type.builtin { color: #0086b3; font-weight: bold; }
+.variable { color: #660066; }
+.variable.parameter { color: #660066; font-style: italic; }
+.variable.builtin { color: #660066; font-weight: bold; }
+.property { color: #660066; }
+.property.function { color: #795da3; }
+.property.method { color: #795da3; }
+.operator { color: #a67f59; }
+.punctuation { color: #333; }
+.punctuation.delimiter { color: #333; }
+.punctuation.bracket { color: #333; }
+.punctuation.special { color: #333; }
+.embedded { color: #660066; }
+.definition { font-weight: bold; border-bottom: 2px solid #ff6600; }

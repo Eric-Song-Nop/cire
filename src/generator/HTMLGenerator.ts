@@ -193,108 +193,7 @@ class HTMLGenerator implements DocGenerator {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${fileName} - Cire Documentation</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        pre {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            padding: 16px;
-            overflow-x: auto;
-            font-size: 14px;
-            line-height: 1.45;
-        }
-
-        code {
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-        }
-
-        /* Hoverable token styles */
-        .token-hoverable {
-            cursor: pointer;
-            border-bottom: 1px dotted #6c757d;
-            transition: all 0.2s ease;
-        }
-
-        .token-hoverable:hover {
-            background-color: #e3f2fd;
-            border-bottom-color: #2196f3;
-        }
-
-        /* Tooltip styles */
-        .hover-tooltip {
-            position: absolute;
-            background: #333;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-family: 'Segoe UI', sans-serif;
-            z-index: 1000;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s ease;
-            max-width: 300px;
-            word-wrap: break-word;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-
-        .hover-tooltip.visible {
-            opacity: 1;
-        }
-
-        .hover-tooltip .symbol-name {
-            font-weight: bold;
-            color: #4fc3f7;
-            margin-bottom: 4px;
-        }
-
-        .hover-tooltip .documentation {
-            color: #e0e0e0;
-            font-size: 12px;
-            white-space: pre-line;
-        }
-
-        .hover-tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
-            border-color: #333 transparent transparent transparent;
-        }
-
-        /* Syntax highlighting styles */
-        .token-keyword { color: #0066cc; font-weight: bold; }
-        .token-string { color: #008000; }
-        .token-comment { color: #808080; font-style: italic; }
-        .token-number { color: #ff6600; }
-        .token-boolean { color: #ff6600; font-weight: bold; }
-        .token-function { color: #795da3; }
-        .token-type { color: #0086b3; }
-        .token-builtin { color: #795da3; font-weight: bold; }
-        .token-variable { color: #660066; }
-        .token-parameter { color: #660066; font-style: italic; }
-        .token-definition { font-weight: bold; border-bottom: 2px solid #ff6600; }
-    </style>
+    <link rel="stylesheet" href="./default.css">
 </head>
 <body>
     <div class="container">
@@ -316,11 +215,47 @@ class HTMLGenerator implements DocGenerator {
         const tooltipDocs = document.getElementById('tooltip-docs');
         let hideTimeout;
 
+        function parseMarkdown(text) {
+            if (!text) return '';
+
+            return text
+                // Code blocks
+                .replace(/\\\`\\\`\\\`\\w+\\n([\\s\\S]*?)\\\`\\\`\\\`/g, '<pre><code>$1</code></pre>')
+                // Inline code
+                .replace(/\\\`([^\\\`]+)\\\`/g, '<code>$1</code>')
+                // Bold text
+                .replace(/\\*\\*([^\\*]+)\\*\\*/g, '<strong>$1</strong>')
+                // Italic text
+                .replace(/\\*([^\\*]+)\\*/g, '<em>$1</em>')
+                // Headers (simplified for tooltips)
+                .replace(/^### (.*$)/gim, '<strong>$1</strong>')
+                .replace(/^## (.*$)/gim, '<strong>$1</strong>')
+                .replace(/^# (.*$)/gim, '<strong>$1</strong>')
+                // Unordered lists
+                .replace(/^\\* (.+)/gim, '<li>$1</li>')
+                // Ordered lists
+                .replace(/^\\d+\\. (.+)/gim, '<li>$1</li>')
+                // Wrap list items in list tags
+                .replace(/(<li>.*<\\/li>)/s, '<ul>$1</ul>')
+                // Paragraphs (replace double newlines with paragraph tags)
+                .replace(/\\n\\n/g, '</p><p>')
+                .replace(/^/, '<p>')
+                .replace(/$/, '</p>')
+                // Clean up any extra paragraphs
+                .replace(/<p><\\/p>/g, '')
+                .replace(/<p>(<strong>)/g, '$1')
+                .replace(/(<\\/strong>)<\\/p>/g, '$1')
+                .replace(/<p>(<ul>)/g, '$1')
+                .replace(/(<\\/ul>)<\\/p>/g, '$1')
+                .replace(/<p>(<pre>)/g, '$1')
+                .replace(/(<\\/pre>)<\\/p>/g, '$1');
+        }
+
         function showTooltip(element, content, documentation) {
             clearTimeout(hideTimeout);
 
             tooltipSymbol.textContent = content;
-            tooltipDocs.textContent = documentation || '';
+            tooltipDocs.innerHTML = parseMarkdown(documentation || '');
 
             const rect = element.getBoundingClientRect();
             const tooltipRect = tooltip.getBoundingClientRect();
