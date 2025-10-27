@@ -8,8 +8,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
+import { TSHighLighter } from "./analyzer/TSHighlighter";
 import { HTMLGenerator } from "./generator/HTMLGenerator";
-import { TSHighLighter } from "./highlighter/TSHighlighter";
 import { MergeTokenPass, SortTokenPass } from "./passes";
 import type { FileIR } from "./types";
 
