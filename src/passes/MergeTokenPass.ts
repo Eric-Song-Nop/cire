@@ -2,19 +2,17 @@
  * Merge Token Pass
  *
  * Detects and merges overlapping token spans to prevent HTML rendering conflicts
+ * Note: Tokens should already be sorted by SortTokenPass before this pass
+ *
  * Example:
- *   Input:  [{classes: ["a"], span: [1-5]}, {classes: ["b"], span: [3-7]}]
+ *   Input: [{classes: ["a"], span: [1-5]}, {classes: ["b"], span: [3-7]}]
  *   Output: [{classes: ["a"], span: [1-2]}, {classes: ["a", "b"], span: [3-5]}, {classes: ["b"], span: [6-7]}]
+ *
+ * Note: when area is marked as comment, we remove all infos collapsed with it.
  */
 
-import type { TokenInfo } from "../types";
-import { mergeHighlightClasses, type TokenInfoPass } from "./TokenInfoPass";
-
-interface TokenRange {
-	start: { line: number; column: number };
-	end: { line: number; column: number };
-	classes: string[];
-}
+import type { MetaInfo, TokenInfo } from "../types";
+import type { TokenInfoPass } from "./TokenInfoPass";
 
 export class MergeTokenPass implements TokenInfoPass {
 	process(tokens: TokenInfo[]): TokenInfo[] {
@@ -26,152 +24,120 @@ export class MergeTokenPass implements TokenInfoPass {
 	}
 
 	private mergeOverlappingTokens(tokens: TokenInfo[]): TokenInfo[] {
-		// Sort tokens by start position
-		const sortedTokens = [...tokens].sort((a, b) => {
-			if (a.span.start.line !== b.span.start.line) {
-				return a.span.start.line - b.span.start.line;
+		// Note: Tokens should already be sorted by SortTokenPass
+		if (tokens.length === 0) {
+			return [];
+		}
+
+		const mergedTokens: TokenInfo[] = [];
+		let currentTokens: TokenInfo[] = [tokens[0]];
+
+		for (let i = 1; i < tokens.length; i++) {
+			const nextToken = tokens[i];
+
+			// Find the earliest end position among current tokens
+			const currentEnd = this.getEarliestEnd(currentTokens);
+
+			// If next token starts after current tokens end, finalize current tokens
+			if (this.isPositionAfter(nextToken.span.start, currentEnd)) {
+				// Create merged segments for current tokens
+				mergedTokens.push(...this.createMergedTokens(currentTokens));
+				// Start new group with next token
+				currentTokens = [nextToken];
+			} else {
+				// Add to current group (overlapping)
+				currentTokens.push(nextToken);
 			}
-			return a.span.start.column - b.span.start.column;
-		});
+		}
 
-		// Convert to a more manageable format and identify all unique positions
-		const ranges: TokenRange[] = sortedTokens.map((token) => ({
-			start: token.span.start,
-			end: token.span.end,
-			classes: this.extractClasses(token),
-		}));
+		// Don't forget the last group
+		if (currentTokens.length > 0) {
+			mergedTokens.push(...this.createMergedTokens(currentTokens));
+		}
 
-		// Generate all boundary points
-		const boundaries = this.generateBoundaries(ranges);
+		return mergedTokens;
+	}
 
-		// Create segments between boundaries
-		const segments = this.createSegments(boundaries, ranges);
+	/**
+	 * Get the earliest end position from a group of tokens
+	 */
+	private getEarliestEnd(tokens: TokenInfo[]): {
+		line: number;
+		column: number;
+	} {
+		return tokens.reduce((earliest, token) => {
+			if (this.isPositionBefore(token.span.end, earliest)) {
+				return token.span.end;
+			}
+			return earliest;
+		}, tokens[0].span.end);
+	}
 
-		// Convert segments back to TokenInfo format
-		return segments.map((segment) => ({
-			span: {
-				start: segment.start,
-				end: segment.end,
+	/**
+	 * Create merged segments from a group of overlapping tokens
+	 */
+	private createMergedTokens(tokens: TokenInfo[]): TokenInfo[] {
+		if (tokens.length === 1) {
+			return tokens;
+		}
+
+		// Collect all meta info from overlapping tokens
+		const allMeta: MetaInfo[] = [];
+
+		for (const token of tokens) {
+			allMeta.push(...token.meta);
+		}
+
+		// Calculate the merged span (union of all overlapping spans)
+		const start = tokens[0].span.start;
+		const end = this.getLatestEnd(tokens);
+
+		return [
+			{
+				span: { start, end },
+				meta: allMeta,
 			},
-			meta: [
-				{
-					type: "highlight",
-					highlightClasses: segment.classes,
-				},
-			],
-		}));
+		];
 	}
 
 	/**
-	 * Extract highlight classes from a token
+	 * Get the latest end position from a group of tokens
 	 */
-	private extractClasses(token: TokenInfo): string[] {
-		for (const meta of token.meta) {
-			if (meta.type === "highlight") {
-				return meta.highlightClasses;
+	private getLatestEnd(tokens: TokenInfo[]): {
+		line: number;
+		column: number;
+	} {
+		return tokens.reduce((latest, token) => {
+			if (this.isPositionAfter(token.span.end, latest)) {
+				return token.span.end;
 			}
-		}
-		return [];
+			return latest;
+		}, tokens[0].span.end);
 	}
 
 	/**
-	 * Generate all unique boundary points from token ranges
+	 * Check if positionA is before positionB
 	 */
-	private generateBoundaries(
-		ranges: TokenRange[],
-	): { line: number; column: number }[] {
-		const boundaries = new Set<string>();
-
-		for (const range of ranges) {
-			boundaries.add(this.positionToString(range.start));
-			boundaries.add(this.positionToString(range.end));
-		}
-
-		// Convert back to position objects and sort
-		const boundaryArray = Array.from(boundaries).map((posStr) =>
-			this.stringToPosition(posStr),
-		);
-
-		return boundaryArray.sort((a, b) => {
-			if (a.line !== b.line) {
-				return a.line - b.line;
-			}
-			return a.column - b.column;
-		});
-	}
-
-	/**
-	 * Create segments between boundaries and assign classes
-	 */
-	private createSegments(
-		boundaries: { line: number; column: number }[],
-		ranges: TokenRange[],
-	): TokenRange[] {
-		const segments: TokenRange[] = [];
-
-		for (let i = 0; i < boundaries.length - 1; i++) {
-			const segmentStart = boundaries[i];
-			const segmentEnd = boundaries[i + 1];
-
-			// Find all ranges that cover this segment
-			const coveringRanges = ranges.filter(
-				(range) =>
-					this.isPositionBeforeOrEqual(range.start, segmentStart) &&
-					this.isPositionAfterOrEqual(range.end, segmentEnd),
-			);
-
-			// Merge all classes from covering ranges
-			const allClasses = coveringRanges.map((r) => r.classes);
-			const mergedClasses = mergeHighlightClasses(allClasses);
-
-			segments.push({
-				start: segmentStart,
-				end: segmentEnd,
-				classes: mergedClasses,
-			});
-		}
-
-		return segments;
-	}
-
-	/**
-	 * Convert position to string for Set operations
-	 */
-	private positionToString(pos: { line: number; column: number }): string {
-		return `${pos.line}:${pos.column}`;
-	}
-
-	/**
-	 * Convert string back to position object
-	 */
-	private stringToPosition(str: string): { line: number; column: number } {
-		const [line, column] = str.split(":").map(Number);
-		return { line, column };
-	}
-
-	/**
-	 * Check if positionA is before or equal to positionB
-	 */
-	private isPositionBeforeOrEqual(
+	private isPositionBefore(
 		posA: { line: number; column: number },
 		posB: { line: number; column: number },
 	): boolean {
 		if (posA.line !== posB.line) {
 			return posA.line < posB.line;
 		}
-		return posA.column <= posB.column;
+		return posA.column < posB.column;
 	}
 
 	/**
-	 * Check if positionA is after or equal to positionB
+	 * Check if positionA is after positionB
 	 */
-	private isPositionAfterOrEqual(
+	private isPositionAfter(
 		posA: { line: number; column: number },
 		posB: { line: number; column: number },
 	): boolean {
 		if (posA.line !== posB.line) {
 			return posA.line > posB.line;
 		}
-		return posA.column >= posB.column;
+		return posA.column > posB.column;
 	}
 }

@@ -6,9 +6,4 @@
 
 export { MergeTokenPass } from "./MergeTokenPass";
 export { SortTokenPass } from "./SortTokenPass";
-export {
-	mergeHighlightClasses,
-	offsetToPosition,
-	positionToOffset,
-	TokenInfoPass,
-} from "./TokenInfoPass";
+export { TokenInfoPass } from "./TokenInfoPass";
