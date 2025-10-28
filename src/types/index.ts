@@ -87,15 +87,6 @@ export interface Analyzer {
 	analyze(fileIR: FileIR): TokenInfo[];
 }
 
-// Document segment for processing
-export interface DocumentSegment {
-	type: "comment" | "code";
-	content: string;
-	originalStartLine: number;
-	originalEndLine: number;
-	preprocessedHTML?: string; // For comment segments
-}
-
 // Generator interface
 export interface DocGenerator {
 	generate(fileIR: FileIR, info: TokenInfo[]): string;

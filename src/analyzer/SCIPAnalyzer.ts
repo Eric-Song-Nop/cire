@@ -1,14 +1,16 @@
+/**
+ * # Scip Analyzer Class
+ *
+ * SCIPAnalyzer uses a SCIP index file to provide lsp documentation
+ * [SCIP](https://github.com/sourcegraph/scip) is the source indexing format provided by Sourcegraph.
+ * Which is a lsif compatible implementation with accelerated with google-protobuf.
+ */
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { scip } from "@sourcegraph/scip/bindings/typescript/scip.js";
 import { BinaryReader } from "google-protobuf";
 import type { Analyzer, FileIR, TokenInfo } from "../types";
 
-/**
- * The SCIPAnalyzer uses a SCIP index file to provide lsp documentation
- * [SCIP](https://github.com/sourcegraph/scip) is the source indexing format provided by Sourcegraph.
- * Which is a lsif compatible implementation with accelerated with google-protobuf.
- */
 export class SCIPAnalyzer implements Analyzer {
 	private scipIndexPath: string;
 	private scipIndex: scip.Index;

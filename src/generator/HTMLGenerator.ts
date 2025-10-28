@@ -73,6 +73,7 @@ class HTMLGenerator implements DocGenerator {
 						try {
 							hoverDocumentation = marked.parse(mh.documentation);
 						} catch (error) {
+							console.warn(error);
 							// Fallback to escaped documentation if marked fails
 							hoverDocumentation = this.escapeHtml(
 								mh.documentation,
@@ -120,8 +121,12 @@ class HTMLGenerator implements DocGenerator {
 				return this.wrapInHTMLTemplate(fileIR, htmlContent);
 			}
 
-			// New segmented rendering approach
-			const htmlContent = this.generateSegmentedHTML(fileIR, info);
+			// New Markdown-style rendering approach
+			const htmlContent = this.generateMarkdownHTML(
+				fileIR,
+				sourceContent,
+				info,
+			);
 			return this.wrapInHTMLTemplate(fileIR, htmlContent);
 		} catch (error) {
 			throw new Error(
@@ -134,36 +139,35 @@ class HTMLGenerator implements DocGenerator {
 	 * Render comment token to HTML with comment-parser integration
 	 */
 	private renderCommentToken(commentText: string): string {
-		try {
-			// comment-parser will handle comment markers automatically
-			const parsed = commentParser.parse(commentText);
+		// comment-parser will handle comment markers automatically
+		const parsed = commentParser.parse(commentText);
 
-			if (parsed.length > 0 && parsed[0].tags.length > 0) {
-				// Has JSDoc tags, render as JSDoc
-				return this.renderJSDocComment(parsed[0]);
-			}
-
-			// No JSDoc tags, try to get description for regular comments
-			if (parsed.length > 0 && parsed[0].description) {
-				const renderedContent = marked.parseInline(
-					parsed[0].description,
-				);
-				return `<span class="token-comment">${renderedContent}</span>`;
-			}
-
-			// Fallback to basic rendering - use marked for inline markdown
-			const renderedContent = marked.parseInline(commentText);
-			return `<span class="token-comment">${renderedContent}</span>`;
-		} catch (error) {
-			// Fallback to simple escaped comment
-			return `<span class="token-comment">${this.escapeHtml(commentText)}</span>`;
+		if (parsed.length > 0 && parsed[0].tags.length > 0) {
+			// Has JSDoc tags, render as JSDoc
+			return this.renderJSDocComment(parsed[0]);
 		}
+
+		// Rebuild description with proper newlines from source lines
+		if (parsed.length > 0) {
+			const sourceLines = parsed[0].source;
+			const descriptions = sourceLines
+				.map((line) => line.tokens.description)
+				.filter((desc) => desc !== undefined);
+			const rebuiltDescription = descriptions.join("\n");
+
+			const renderedContent = marked.parse(rebuiltDescription);
+			return `<div class="token-comment">${renderedContent}</div>`;
+		}
+
+		// Should not happen, but handle empty parsed result
+		const renderedContent = marked.parse(commentText);
+		return `<div class="token-comment">${renderedContent}</div>`;
 	}
 
 	/**
 	 * Render JSDoc comment using parsed comment-parser result
 	 */
-	private renderJSDocComment(jsdoc: any): string {
+	private renderJSDocComment(jsdoc: commentParser.Block): string {
 		let html = "";
 
 		// Render main description using marked
@@ -184,7 +188,7 @@ class HTMLGenerator implements DocGenerator {
 	/**
 	 * Render individual JSDoc tag
 	 */
-	private renderJSDocTag(tag: any): string {
+	private renderJSDocTag(tag: commentParser.Spec): string {
 		const tagName = tag.tag || "";
 		const name = tag.name || "";
 		const description = tag.description || "";
@@ -203,34 +207,181 @@ class HTMLGenerator implements DocGenerator {
 	}
 
 	/**
-	 * Generate HTML using segmented rendering approach with comment handling
+	 * Generate Markdown-style HTML separating comments and code with syntax highlighting
 	 */
-	private generateSegmentedHTML(fileIR: FileIR, info: TokenInfo[]): string {
-		// Read source file content
-		const sourcePath = path.resolve(fileIR.filePath);
-		const sourceContent = fs.readFileSync(sourcePath, "utf-8");
+	private generateMarkdownHTML(
+		fileIR: FileIR,
+		sourceContent: string,
+		info: TokenInfo[],
+	): string {
+		const lines = sourceContent.split("\n");
 
-		// Separate comment and non-comment tokens
-		const commentTokens = info.filter((token) =>
-			token.meta.some((m) => m.type === "comment"),
-		);
-		const otherTokens = info.filter(
-			(token) => !token.meta.some((m) => m.type === "comment"),
-		);
+		// Extract comment tokens and sort by position
+		const commentTokens = info
+			.filter((token) => token.meta.some((m) => m.type === "comment"))
+			.sort((a, b) => {
+				if (a.span.start.line !== b.span.start.line) {
+					return a.span.start.line - b.span.start.line;
+				}
+				return a.span.start.column - b.span.start.column;
+			});
 
-		// Sort all tokens by position for proper processing
-		const allTokens = [...otherTokens, ...commentTokens].sort((a, b) => {
-			if (a.span.start.line !== b.span.start.line) {
-				return a.span.start.line - b.span.start.line;
+		// Get non-comment tokens for syntax highlighting
+		const nonCommentTokens = info
+			.filter((token) => !token.meta.some((m) => m.type === "comment"))
+			.sort((a, b) => {
+				if (a.span.start.line !== b.span.start.line) {
+					return a.span.start.line - b.span.start.line;
+				}
+				return a.span.start.column - b.span.start.column;
+			});
+
+		const result: string[] = [];
+		let currentLine = 0;
+
+		// Process each comment token and the code between them
+		for (const commentToken of commentTokens) {
+			const startLine = commentToken.span.start.line;
+			const endLine = commentToken.span.end.line;
+
+			// Add highlighted code before this comment (if any)
+			if (currentLine < startLine) {
+				const highlightedCode = this.generateHighlightedCodeSegment(
+					sourceContent,
+					currentLine,
+					startLine - 1,
+					nonCommentTokens,
+				);
+				if (highlightedCode.trim()) {
+					result.push(
+						`<pre><code class="language-ts">${highlightedCode}</code></pre>`,
+					);
+				}
 			}
-			return a.span.start.column - b.span.start.column;
+
+			// Add the comment as markdown content
+			const commentLines = lines.slice(startLine, endLine + 1);
+			const commentText = commentLines.join("\n");
+			const renderedComment = this.renderCommentToken(commentText);
+			result.push(renderedComment);
+
+			currentLine = endLine + 1;
+		}
+
+		// Add remaining highlighted code after the last comment
+		if (currentLine < lines.length) {
+			const highlightedCode = this.generateHighlightedCodeSegment(
+				sourceContent,
+				currentLine,
+				lines.length - 1,
+				nonCommentTokens,
+			);
+			if (highlightedCode.trim()) {
+				result.push(
+					`<pre><code class="language-ts">${highlightedCode}</code></pre>`,
+				);
+			}
+		}
+
+		const markdownContent = result.join("\n");
+		return `<div class="markdown-content">${markdownContent}</div>`;
+	}
+
+	/**
+	 * Generate highlighted HTML for a specific line range
+	 */
+	private generateHighlightedCodeSegment(
+		sourceContent: string,
+		startLine: number,
+		endLine: number,
+		tokens: TokenInfo[],
+	): string {
+		if (startLine > endLine) return "";
+
+		const lines = sourceContent.split("\n");
+		let result = "";
+		// Filter tokens that are within our line range
+		const rangeTokens = tokens.filter((token) => {
+			const tokenStart = token.span.start.line;
+			const tokenEnd = token.span.end.line;
+			return tokenStart <= endLine && tokenEnd >= startLine;
+		});
+
+		// Process each line in the range
+		for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
+			if (lineNum >= lines.length) break;
+
+			const line = lines[lineNum];
+			const lineStartOffset = this.positionToOffset(sourceContent, {
+				line: lineNum,
+				column: 0,
+			});
+			const lineEndOffset = this.positionToOffset(sourceContent, {
+				line: lineNum,
+				column: line.length,
+			});
+
+			// Find tokens that overlap with this line
+			const lineTokens = rangeTokens.filter((token) => {
+				const tokenStart = this.positionToOffset(
+					sourceContent,
+					token.span.start,
+				);
+				const tokenEnd = this.positionToOffset(
+					sourceContent,
+					token.span.end,
+				);
+				return tokenStart < lineEndOffset && tokenEnd > lineStartOffset;
+			});
+
+			if (lineTokens.length === 0) {
+				// No tokens for this line, just add the escaped line
+				result += this.escapeHtml(line) + "\n";
+			} else {
+				// Process tokens on this line
+				const lineContent = this.processTokensOnLine(
+					sourceContent,
+					lineNum,
+					lineTokens,
+				);
+				result += lineContent + "\n";
+			}
+		}
+
+		return result.trim();
+	}
+
+	/**
+	 * Process tokens on a specific line
+	 */
+	private processTokensOnLine(
+		sourceContent: string,
+		lineNum: number,
+		lineTokens: TokenInfo[],
+	): string {
+		const lines = sourceContent.split("\n");
+		const line = lines[lineNum];
+		const lineStartOffset = this.positionToOffset(sourceContent, {
+			line: lineNum,
+			column: 0,
+		});
+		const lineEndOffset = this.positionToOffset(sourceContent, {
+			line: lineNum,
+			column: line.length,
+		});
+
+		// Sort tokens by position
+		lineTokens.sort((a, b) => {
+			const startA = this.positionToOffset(sourceContent, a.span.start);
+			const startB = this.positionToOffset(sourceContent, b.span.start);
+			return startA - startB;
 		});
 
 		let result = "";
-		let currentOffset = 0;
+		let currentOffset = lineStartOffset;
 
-		// Process tokens in order
-		for (const token of allTokens) {
+		// Process each token
+		for (const token of lineTokens) {
 			const tokenStart = this.positionToOffset(
 				sourceContent,
 				token.span.start,
@@ -249,49 +400,37 @@ class HTMLGenerator implements DocGenerator {
 				result += this.escapeHtml(textBefore);
 			}
 
-			// Handle token based on its meta
-			const isCommentToken = token.meta.some((m) => m.type === "comment");
+			// Add token with styling
+			const tokenText = sourceContent.slice(tokenStart, tokenEnd);
+			const tokenInfo = this.extractTokenInfo(token.meta);
 
-			if (isCommentToken) {
-				// Extract comment content from source
-				const commentText = sourceContent.slice(tokenStart, tokenEnd);
-				const renderedComment = this.renderCommentToken(commentText);
-				result += renderedComment;
-			} else {
-				// Handle syntax highlighting and other tokens
-				const tokenText = sourceContent.slice(tokenStart, tokenEnd);
-				const tokenInfo = this.extractTokenInfo(token.meta);
-
-				if (tokenInfo.classes.length > 0 || tokenInfo.hoverContent) {
-					const classAttr =
-						tokenInfo.classes.length > 0
-							? ` class="${tokenInfo.classes.join(" ")}"`
-							: "";
-
-					let dataAttrs = "";
-					if (tokenInfo.hoverContent) {
-						dataAttrs += ` data-hover-content="${this.escapeHtml(tokenInfo.hoverContent)}"`;
-						if (tokenInfo.hoverDocumentation) {
-							dataAttrs += ` data-hover-documentation="${this.escapeHtml(tokenInfo.hoverDocumentation)}"`;
-						}
+			if (tokenInfo.classes.length > 0 || tokenInfo.hoverContent) {
+				const classAttr =
+					tokenInfo.classes.length > 0
+						? ` class="${tokenInfo.classes.join(" ")}"`
+						: "";
+				let dataAttrs = "";
+				if (tokenInfo.hoverContent) {
+					dataAttrs += ` data-hover-content="${this.escapeHtml(tokenInfo.hoverContent)}"`;
+					if (tokenInfo.hoverDocumentation) {
+						dataAttrs += ` data-hover-documentation="${this.escapeHtml(tokenInfo.hoverDocumentation)}"`;
 					}
-
-					result += `<span${classAttr}${dataAttrs}>${this.escapeHtml(tokenText)}</span>`;
-				} else {
-					result += this.escapeHtml(tokenText);
 				}
+				result += `<span${classAttr}${dataAttrs}>${this.escapeHtml(tokenText)}</span>`;
+			} else {
+				result += this.escapeHtml(tokenText);
 			}
 
 			currentOffset = tokenEnd;
 		}
 
 		// Add remaining text after last token
-		if (currentOffset < sourceContent.length) {
-			const remainingText = sourceContent.slice(currentOffset);
-			result += this.escapeHtml(remainingText);
+		if (currentOffset < lineEndOffset) {
+			const textAfter = sourceContent.slice(currentOffset, lineEndOffset);
+			result += this.escapeHtml(textAfter);
 		}
 
-		return `<pre><code>${result}</code></pre>`;
+		return result;
 	}
 
 	/**
@@ -380,11 +519,7 @@ class HTMLGenerator implements DocGenerator {
 </head>
 <body>
     <div class="container">
-        <h1>${fileName}</h1>
-        <p>Generated by <strong>Cire</strong> - Static Documentation Generator with IDE-like features</p>
-        <div>
-            ${content}
-        </div>
+        ${content}
     </div>
 
     <div class="hover-tooltip" id="tooltip">
