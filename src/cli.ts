@@ -31,6 +31,7 @@ program
 	)
 	.option("--no-highlight", "Disable syntax highlighting")
 	.option("--no-hover", "Disable hover documentation")
+	.option("--no-comment-markdown", "Disable comment-to-markdown conversion")
 	.option("-v, --verbose", "Enable verbose logging")
 	.action(async (options) => {
 		try {
@@ -67,6 +68,7 @@ program
 			const config: WorkflowConfig = {
 				syntaxHighlighting: options.highlight,
 				hoverDocumentation: options.hover && !!options.scip,
+				commentToMarkdown: options.commentMarkdown,
 				scipIndexPath: options.scip,
 				language: options.language,
 			};
@@ -86,6 +88,11 @@ program
 				console.log(
 					chalk.gray(
 						`✨ Syntax Highlighting: ${config.syntaxHighlighting}`,
+					),
+				);
+				console.log(
+					chalk.gray(
+						`💬 Comment-to-Markdown: ${config.commentToMarkdown}`,
 					),
 				);
 				console.log(
@@ -142,6 +149,11 @@ program
 			if (stats.syntaxHighlighter) {
 				console.log(
 					chalk.green(`  ✓ Syntax highlighting (Tree-sitter)`),
+				);
+			}
+			if (config.commentToMarkdown) {
+				console.log(
+					chalk.green(`  ✓ Block comment to Markdown conversion`),
 				);
 			}
 			if (stats.scipAnalyzer) {

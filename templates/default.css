@@ -145,7 +145,14 @@ code {
 /* Legacy token- prefixed syntax highlighting styles */
 .token-keyword { color: #0066cc; font-weight: bold; }
 .token-string { color: #008000; }
-.token-comment { color: #808080; font-style: italic; }
+.token-comment {
+    color: #808080;
+    font-style: italic;
+    display: inline-block;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: 2px 0;
+}
 .token-number { color: #ff6600; }
 .token-boolean { color: #ff6600; font-weight: bold; }
 .token-function { color: #795da3; }
@@ -182,3 +189,77 @@ code {
 .punctuation.special { color: #333; }
 .embedded { color: #660066; }
 .definition { font-weight: bold; border-bottom: 2px solid #ff6600; }
+
+/* Enhanced comment styles */
+.jsdoc-comment {
+    display: block;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 8px 0;
+    color: #495057;
+    font-style: normal;
+}
+
+.jsdoc-description {
+    margin-bottom: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.jsdoc-tags {
+    border-top: 1px solid #dee2e6;
+    padding-top: 8px;
+    margin-top: 8px;
+}
+
+.jsdoc-tag {
+    margin: 4px 0;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.jsdoc-tag-name {
+    color: #0066cc;
+    font-weight: bold;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.jsdoc-tag-description {
+    color: #495057;
+    margin-left: 4px;
+}
+
+.jsdoc-tag-description code {
+    background: #e9ecef;
+    color: #c7254e;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 11px;
+}
+
+.jsdoc-tag-description em {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.jsdoc-tag-description strong {
+    color: #495057;
+    font-weight: bold;
+}
+
+/* Comment paragraph styling */
+.token-comment p {
+    margin: 4px 0;
+    line-height: 1.4;
+}
+
+.token-comment p:first-child {
+    margin-top: 0;
+}
+
+.token-comment p:last-child {
+    margin-bottom: 0;
+}

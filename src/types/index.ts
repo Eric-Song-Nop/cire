@@ -80,7 +80,7 @@ export type ColorScheme = {
 };
 
 /**
- * Interface for analyzer
+ * # Interface for analyzer
  * Example analyzers: syntax highlighter, hover documentation extractor
  */
 export interface Analyzer {

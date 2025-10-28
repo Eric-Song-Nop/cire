@@ -2,7 +2,7 @@ import { CommentAnalyzer } from "../analyzer/CommentAnalyzer";
 import { SCIPAnalyzer } from "../analyzer/SCIPAnalyzer";
 import { TSHighLighter } from "../analyzer/TSHighlighter";
 import { HTMLGenerator } from "../generator/HTMLGenerator";
-import { MergeTokenPass, SortTokenPass } from "../passes";
+import { CommentMergePass, MergeTokenPass, SortTokenPass } from "../passes";
 import type { FileIR, TokenInfo } from "../types";
 
 export interface WorkflowConfig {
@@ -88,12 +88,14 @@ export class WorkflowManager {
 		// Use professional passes instead of manual implementation
 		const sortPass = new SortTokenPass();
 		const mergePass = new MergeTokenPass();
+		const commentMergePass = new CommentMergePass();
 
-		// First sort tokens, then merge overlapping ones
+		// Process tokens through the pipeline: sort → merge → comment merge
 		const sortedTokens = sortPass.process(tokens);
 		const mergedTokens = mergePass.process(sortedTokens);
+		const finalTokens = commentMergePass.process(mergedTokens);
 
-		return mergedTokens;
+		return finalTokens;
 	}
 
 	/**

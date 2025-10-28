@@ -1,5 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as commentParser from "comment-parser";
+import { marked } from "marked";
 import { match } from "ts-pattern";
 import type { DocGenerator, FileIR, Position, TokenInfo } from "../types";
 
@@ -60,17 +62,26 @@ class HTMLGenerator implements DocGenerator {
 
 		meta.forEach((m) => {
 			match(m)
-				.with({ type: "highlight" }, (m) => {
-					classes.push(...m.highlightClasses);
+				.with({ type: "highlight" }, (mh) => {
+					classes.push(...mh.highlightClasses);
 				})
-				.with({ type: "hover" }, (m) => {
+				.with({ type: "hover" }, (mh) => {
 					classes.push("token-hoverable");
-					hoverContent = m.content;
-					hoverDocumentation = m.documentation;
+					hoverContent = mh.content;
+					// Preprocess hover documentation with marked on server-side
+					if (mh.documentation) {
+						try {
+							hoverDocumentation = marked.parse(mh.documentation);
+						} catch (error) {
+							// Fallback to escaped documentation if marked fails
+							hoverDocumentation = this.escapeHtml(
+								mh.documentation,
+							);
+						}
+					}
 				})
-				.with({ type: "definition" }, () => {
-					classes.push("token-definition");
-				})
+				.with({ type: "definition" }, () => {})
+				.with({ type: "comment" }, () => {})
 				.exhaustive();
 		});
 
@@ -94,21 +105,193 @@ class HTMLGenerator implements DocGenerator {
 
 			const sourceContent = fs.readFileSync(sourcePath, "utf-8");
 
-			// Process all tokens (including those with hover info)
-			const sortedTokens = this.sortTokens(info);
-
-			// Generate HTML with syntax highlighting
-			const htmlContent = this.generateHighlightedHTML(
-				sourceContent,
-				sortedTokens,
+			// Check if we have comment tokens - if not, use original method
+			const hasCommentTokens = info.some((token) =>
+				token.meta.some((m) => m.type === "comment"),
 			);
 
+			if (!hasCommentTokens) {
+				// Original method for backward compatibility
+				const sortedTokens = this.sortTokens(info);
+				const htmlContent = this.generateHighlightedHTML(
+					sourceContent,
+					sortedTokens,
+				);
+				return this.wrapInHTMLTemplate(fileIR, htmlContent);
+			}
+
+			// New segmented rendering approach
+			const htmlContent = this.generateSegmentedHTML(fileIR, info);
 			return this.wrapInHTMLTemplate(fileIR, htmlContent);
 		} catch (error) {
 			throw new Error(
 				`Failed to generate HTML for ${fileIR.filePath}: ${error}`,
 			);
 		}
+	}
+
+	/**
+	 * Render comment token to HTML with comment-parser integration
+	 */
+	private renderCommentToken(commentText: string): string {
+		try {
+			// comment-parser will handle comment markers automatically
+			const parsed = commentParser.parse(commentText);
+
+			if (parsed.length > 0 && parsed[0].tags.length > 0) {
+				// Has JSDoc tags, render as JSDoc
+				return this.renderJSDocComment(parsed[0]);
+			}
+
+			// No JSDoc tags, try to get description for regular comments
+			if (parsed.length > 0 && parsed[0].description) {
+				const renderedContent = marked.parseInline(
+					parsed[0].description,
+				);
+				return `<span class="token-comment">${renderedContent}</span>`;
+			}
+
+			// Fallback to basic rendering - use marked for inline markdown
+			const renderedContent = marked.parseInline(commentText);
+			return `<span class="token-comment">${renderedContent}</span>`;
+		} catch (error) {
+			// Fallback to simple escaped comment
+			return `<span class="token-comment">${this.escapeHtml(commentText)}</span>`;
+		}
+	}
+
+	/**
+	 * Render JSDoc comment using parsed comment-parser result
+	 */
+	private renderJSDocComment(jsdoc: any): string {
+		let html = "";
+
+		// Render main description using marked
+		if (jsdoc.description) {
+			html += `<div class="jsdoc-description">${marked.parseInline(jsdoc.description)}</div>`;
+		}
+
+		// Render tags
+		html += '<div class="jsdoc-tags">';
+		for (const tag of jsdoc.tags) {
+			html += this.renderJSDocTag(tag);
+		}
+		html += "</div>";
+
+		return `<span class="token-comment jsdoc-comment">${html}</span>`;
+	}
+
+	/**
+	 * Render individual JSDoc tag
+	 */
+	private renderJSDocTag(tag: any): string {
+		const tagName = tag.tag || "";
+		const name = tag.name || "";
+		const description = tag.description || "";
+
+		let tagContent = `<span class="jsdoc-tag-name">@${tagName}</span>`;
+
+		if (name) {
+			tagContent += ` <span class="jsdoc-tag-name">${this.escapeHtml(name)}</span>`;
+		}
+
+		if (description) {
+			tagContent += ` <span class="jsdoc-tag-description">${marked.parseInline(description)}</span>`;
+		}
+
+		return `<div class="jsdoc-tag">${tagContent}</div>`;
+	}
+
+	/**
+	 * Generate HTML using segmented rendering approach with comment handling
+	 */
+	private generateSegmentedHTML(fileIR: FileIR, info: TokenInfo[]): string {
+		// Read source file content
+		const sourcePath = path.resolve(fileIR.filePath);
+		const sourceContent = fs.readFileSync(sourcePath, "utf-8");
+
+		// Separate comment and non-comment tokens
+		const commentTokens = info.filter((token) =>
+			token.meta.some((m) => m.type === "comment"),
+		);
+		const otherTokens = info.filter(
+			(token) => !token.meta.some((m) => m.type === "comment"),
+		);
+
+		// Sort all tokens by position for proper processing
+		const allTokens = [...otherTokens, ...commentTokens].sort((a, b) => {
+			if (a.span.start.line !== b.span.start.line) {
+				return a.span.start.line - b.span.start.line;
+			}
+			return a.span.start.column - b.span.start.column;
+		});
+
+		let result = "";
+		let currentOffset = 0;
+
+		// Process tokens in order
+		for (const token of allTokens) {
+			const tokenStart = this.positionToOffset(
+				sourceContent,
+				token.span.start,
+			);
+			const tokenEnd = this.positionToOffset(
+				sourceContent,
+				token.span.end,
+			);
+
+			// Add text before token
+			if (tokenStart > currentOffset) {
+				const textBefore = sourceContent.slice(
+					currentOffset,
+					tokenStart,
+				);
+				result += this.escapeHtml(textBefore);
+			}
+
+			// Handle token based on its meta
+			const isCommentToken = token.meta.some((m) => m.type === "comment");
+
+			if (isCommentToken) {
+				// Extract comment content from source
+				const commentText = sourceContent.slice(tokenStart, tokenEnd);
+				const renderedComment = this.renderCommentToken(commentText);
+				result += renderedComment;
+			} else {
+				// Handle syntax highlighting and other tokens
+				const tokenText = sourceContent.slice(tokenStart, tokenEnd);
+				const tokenInfo = this.extractTokenInfo(token.meta);
+
+				if (tokenInfo.classes.length > 0 || tokenInfo.hoverContent) {
+					const classAttr =
+						tokenInfo.classes.length > 0
+							? ` class="${tokenInfo.classes.join(" ")}"`
+							: "";
+
+					let dataAttrs = "";
+					if (tokenInfo.hoverContent) {
+						dataAttrs += ` data-hover-content="${this.escapeHtml(tokenInfo.hoverContent)}"`;
+						if (tokenInfo.hoverDocumentation) {
+							dataAttrs += ` data-hover-documentation="${this.escapeHtml(tokenInfo.hoverDocumentation)}"`;
+						}
+					}
+
+					result += `<span${classAttr}${dataAttrs}>${this.escapeHtml(tokenText)}</span>`;
+				} else {
+					result += this.escapeHtml(tokenText);
+				}
+			}
+
+			currentOffset = tokenEnd;
+		}
+
+		// Add remaining text after last token
+		if (currentOffset < sourceContent.length) {
+			const remainingText = sourceContent.slice(currentOffset);
+			result += this.escapeHtml(remainingText);
+		}
+
+		return `<pre><code>${result}</code></pre>`;
 	}
 
 	/**
@@ -217,38 +400,9 @@ class HTMLGenerator implements DocGenerator {
 
         function parseMarkdown(text) {
             if (!text) return '';
-
-            return text
-                // Code blocks
-                .replace(/\\\`\\\`\\\`\\w+\\n([\\s\\S]*?)\\\`\\\`\\\`/g, '<pre><code>$1</code></pre>')
-                // Inline code
-                .replace(/\\\`([^\\\`]+)\\\`/g, '<code>$1</code>')
-                // Bold text
-                .replace(/\\*\\*([^\\*]+)\\*\\*/g, '<strong>$1</strong>')
-                // Italic text
-                .replace(/\\*([^\\*]+)\\*/g, '<em>$1</em>')
-                // Headers (simplified for tooltips)
-                .replace(/^### (.*$)/gim, '<strong>$1</strong>')
-                .replace(/^## (.*$)/gim, '<strong>$1</strong>')
-                .replace(/^# (.*$)/gim, '<strong>$1</strong>')
-                // Unordered lists
-                .replace(/^\\* (.+)/gim, '<li>$1</li>')
-                // Ordered lists
-                .replace(/^\\d+\\. (.+)/gim, '<li>$1</li>')
-                // Wrap list items in list tags
-                .replace(/(<li>.*<\\/li>)/s, '<ul>$1</ul>')
-                // Paragraphs (replace double newlines with paragraph tags)
-                .replace(/\\n\\n/g, '</p><p>')
-                .replace(/^/, '<p>')
-                .replace(/$/, '</p>')
-                // Clean up any extra paragraphs
-                .replace(/<p><\\/p>/g, '')
-                .replace(/<p>(<strong>)/g, '$1')
-                .replace(/(<\\/strong>)<\\/p>/g, '$1')
-                .replace(/<p>(<ul>)/g, '$1')
-                .replace(/(<\\/ul>)<\\/p>/g, '$1')
-                .replace(/<p>(<pre>)/g, '$1')
-                .replace(/(<\\/pre>)<\\/p>/g, '$1');
+            // Markdown is now preprocessed on server-side using marked
+            // Just return the pre-rendered HTML directly
+            return text;
         }
 
         function showTooltip(element, content, documentation) {

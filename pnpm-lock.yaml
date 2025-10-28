@@ -20,6 +20,9 @@ importers:
       commander:
         specifier: ^11.1.0
         version: 11.1.0
+      comment-parser:
+        specifier: ^1.4.1
+        version: 1.4.1
       glob:
         specifier: ^10.3.10
         version: 10.4.5
@@ -604,6 +607,10 @@ packages:
   commander@12.1.0:
     resolution: {integrity: sha512-Vw8qHK3bZM9y/P10u3Vib8o/DdkvA2OtPtZvD871QKjy74Wj1WSKFILMPRPSdUSx5RFK1arlJzEtA4PkFgnbuA==, tarball: https://registry.npmjs.org/commander/-/commander-12.1.0.tgz}
     engines: {node: '>=18'}
+
+  comment-parser@1.4.1:
+    resolution: {integrity: sha512-buhp5kePrmda3vhc5B9t7pUQXAb2Tnd0qgpkIhPhkHXxJpiPJ11H0ZEU0oBpJ2QztSbzG/ZxMj/CHsYJqRHmyg==, tarball: https://registry.npmjs.org/comment-parser/-/comment-parser-1.4.1.tgz}
+    engines: {node: '>= 12.0.0'}
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==, tarball: https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz}
@@ -1514,6 +1521,8 @@ snapshots:
   commander@11.1.0: {}
 
   commander@12.1.0: {}
+
+  comment-parser@1.4.1: {}
 
   cross-spawn@7.0.6:
     dependencies:
