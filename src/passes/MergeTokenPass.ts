@@ -1,14 +1,19 @@
 /**
  * Merge Token Pass
  *
- * Detects and merges overlapping token spans to prevent HTML rendering conflicts
- * Note: Tokens should already be sorted by SortTokenPass before this pass
+ * Splits overlapping token spans into minimal non-overlapping segments.
+ * This is a pure splitting algorithm that preserves all meta information.
+ * Note: Tokens should already be sorted by SortTokenPass before this pass.
  *
  * Example:
- *   Input: [{classes: ["a"], span: [1-5]}, {classes: ["b"], span: [3-7]}]
- *   Output: [{classes: ["a"], span: [1-2]}, {classes: ["a", "b"], span: [3-5]}, {classes: ["b"], span: [6-7]}]
+ *   Input: [{span: [1-5], meta: [highlight]}, {span: [3-7], meta: [hover]}]
+ *   Output: [
+ *     {span: [1-2], meta: [highlight]},
+ *     {span: [3-5], meta: [highlight, hover]},
+ *     {span: [6-7], meta: [hover]}
+ *   ]
  *
- * Note: when area is marked as comment, we remove all infos collapsed with it.
+ * Note: This pass does NOT handle comment priority. Use CommentMergePass for that.
  */
 
 import type { MetaInfo, TokenInfo } from "../types";
@@ -20,124 +25,180 @@ export class MergeTokenPass implements TokenInfoPass {
 			return [];
 		}
 
-		return this.mergeOverlappingTokens(tokens);
-	}
-
-	private mergeOverlappingTokens(tokens: TokenInfo[]): TokenInfo[] {
-		// Note: Tokens should already be sorted by SortTokenPass
-		if (tokens.length === 0) {
-			return [];
-		}
-
-		const mergedTokens: TokenInfo[] = [];
-		let currentTokens: TokenInfo[] = [tokens[0]];
-
-		for (let i = 1; i < tokens.length; i++) {
-			const nextToken = tokens[i];
-
-			// Find the earliest end position among current tokens
-			const currentEnd = this.getEarliestEnd(currentTokens);
-
-			// If next token starts after current tokens end, finalize current tokens
-			if (this.isPositionAfter(nextToken.span.start, currentEnd)) {
-				// Create merged segments for current tokens
-				mergedTokens.push(...this.createMergedTokens(currentTokens));
-				// Start new group with next token
-				currentTokens = [nextToken];
-			} else {
-				// Add to current group (overlapping)
-				currentTokens.push(nextToken);
-			}
-		}
-
-		// Don't forget the last group
-		if (currentTokens.length > 0) {
-			mergedTokens.push(...this.createMergedTokens(currentTokens));
-		}
-
-		return mergedTokens;
+		return this.splitOverlappingTokens(tokens);
 	}
 
 	/**
-	 * Get the earliest end position from a group of tokens
+	 * Split overlapping tokens into minimal non-overlapping segments
+	 * using a single-pass event-driven algorithm
 	 */
-	private getEarliestEnd(tokens: TokenInfo[]): {
+	private splitOverlappingTokens(tokens: TokenInfo[]): TokenInfo[] {
+		const result: TokenInfo[] = [];
+		let activeTokens: TokenInfo[] = [];
+		let currentPosition = tokens[0].span.start;
+		let tokenIndex = 0;
+
+		// Process all events (starts and ends) in order
+		while (tokenIndex < tokens.length || activeTokens.length > 0) {
+			const nextEvent = this.findNextEvent(
+				tokens,
+				tokenIndex,
+				activeTokens,
+			);
+
+			// Create segment for the range [currentPosition, nextEvent.position)
+			if (
+				this.comparePositions(currentPosition, nextEvent.position) < 0
+			) {
+				const segment = this.createSegment(
+					currentPosition,
+					nextEvent.position,
+					activeTokens,
+				);
+				if (segment) {
+					result.push(segment);
+				}
+			}
+
+			// Process events at this position
+			const eventResult = this.processEventsAtPosition(
+				nextEvent.position,
+				tokens,
+				tokenIndex,
+				activeTokens,
+			);
+			activeTokens = eventResult.updatedActiveTokens;
+
+			currentPosition = nextEvent.position;
+			tokenIndex = eventResult.newStartIndex;
+		}
+
+		return result;
+	}
+
+	/**
+	 * Find the next event (start or end) from the remaining tokens and active tokens
+	 */
+	private findNextEvent(
+		tokens: TokenInfo[],
+		startIndex: number,
+		activeTokens: TokenInfo[],
+	): { position: { line: number; column: number }; nextIndex: number } {
+		let nextPosition: { line: number; column: number };
+		let isEndEvent = false;
+
+		// Find the next start event
+		if (startIndex < tokens.length) {
+			nextPosition = tokens[startIndex].span.start;
+		} else if (activeTokens.length > 0) {
+			// No more start events, find next end from active tokens
+			nextPosition = this.findNextEnd(activeTokens);
+			isEndEvent = true;
+		} else {
+			// Should never reach here with proper loop condition
+			throw new Error("No more tokens or active tokens to process");
+		}
+
+		// Find the next end event from active tokens and compare with start
+		if (activeTokens.length > 0 && !isEndEvent) {
+			const nextEnd = this.findNextEnd(activeTokens);
+			// Return whichever comes first: next start or next end
+			if (this.comparePositions(nextEnd, nextPosition) < 0) {
+				return { position: nextEnd, nextIndex: startIndex };
+			}
+		}
+
+		return { position: nextPosition, nextIndex: startIndex };
+	}
+
+	/**
+	 * Find the earliest end position from active tokens
+	 */
+	private findNextEnd(activeTokens: TokenInfo[]): {
 		line: number;
 		column: number;
 	} {
-		return tokens.reduce((earliest, token) => {
-			if (this.isPositionBefore(token.span.end, earliest)) {
+		return activeTokens.reduce((earliest, token) => {
+			if (this.comparePositions(token.span.end, earliest) < 0) {
 				return token.span.end;
 			}
 			return earliest;
-		}, tokens[0].span.end);
+		}, activeTokens[0].span.end);
 	}
 
 	/**
-	 * Create merged segments from a group of overlapping tokens
+	 * Process all events (starts and ends) that occur at the given position
 	 */
-	private createMergedTokens(tokens: TokenInfo[]): TokenInfo[] {
-		if (tokens.length === 1) {
-			return tokens;
+	private processEventsAtPosition(
+		position: { line: number; column: number },
+		tokens: TokenInfo[],
+		startIndex: number,
+		activeTokens: TokenInfo[],
+	): { newStartIndex: number; updatedActiveTokens: TokenInfo[] } {
+		let newStartIndex = startIndex;
+		const updatedActiveTokens = [...activeTokens];
+
+		// Add new tokens that start at this position
+		while (
+			newStartIndex < tokens.length &&
+			this.isSamePosition(tokens[newStartIndex].span.start, position)
+		) {
+			updatedActiveTokens.push(tokens[newStartIndex]);
+			newStartIndex++;
 		}
 
-		// Collect all meta info from overlapping tokens
-		const allMeta: MetaInfo[] = [];
+		// Remove tokens that end at this position
+		const filteredTokens = updatedActiveTokens.filter(
+			(token) => !this.isSamePosition(token.span.end, position),
+		);
 
-		for (const token of tokens) {
+		return { newStartIndex, updatedActiveTokens: filteredTokens };
+	}
+
+	/**
+	 * Create a segment for the given range with all active tokens' meta
+	 */
+	private createSegment(
+		start: { line: number; column: number },
+		end: { line: number; column: number },
+		activeTokens: TokenInfo[],
+	): TokenInfo | null {
+		if (activeTokens.length === 0) {
+			return null;
+		}
+
+		// Collect all meta from active tokens
+		const allMeta: MetaInfo[] = [];
+		for (const token of activeTokens) {
 			allMeta.push(...token.meta);
 		}
 
-		// Calculate the merged span (union of all overlapping spans)
-		const start = tokens[0].span.start;
-		const end = this.getLatestEnd(tokens);
-
-		return [
-			{
-				span: { start, end },
-				meta: allMeta,
-			},
-		];
+		return {
+			span: { start, end },
+			meta: allMeta,
+		};
 	}
 
 	/**
-	 * Get the latest end position from a group of tokens
+	 * Compare two positions. Return -1 if a < b, 0 if equal, 1 if a > b
 	 */
-	private getLatestEnd(tokens: TokenInfo[]): {
-		line: number;
-		column: number;
-	} {
-		return tokens.reduce((latest, token) => {
-			if (this.isPositionAfter(token.span.end, latest)) {
-				return token.span.end;
-			}
-			return latest;
-		}, tokens[0].span.end);
+	private comparePositions(
+		posA: { line: number; column: number },
+		posB: { line: number; column: number },
+	): number {
+		if (posA.line !== posB.line) {
+			return posA.line - posB.line;
+		}
+		return posA.column - posB.column;
 	}
 
 	/**
-	 * Check if positionA is before positionB
+	 * Check if two positions are the same
 	 */
-	private isPositionBefore(
+	private isSamePosition(
 		posA: { line: number; column: number },
 		posB: { line: number; column: number },
 	): boolean {
-		if (posA.line !== posB.line) {
-			return posA.line < posB.line;
-		}
-		return posA.column < posB.column;
-	}
-
-	/**
-	 * Check if positionA is after positionB
-	 */
-	private isPositionAfter(
-		posA: { line: number; column: number },
-		posB: { line: number; column: number },
-	): boolean {
-		if (posA.line !== posB.line) {
-			return posA.line > posB.line;
-		}
-		return posA.column > posB.column;
+		return posA.line === posB.line && posA.column === posB.column;
 	}
 }
