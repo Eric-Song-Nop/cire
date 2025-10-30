@@ -11,6 +11,7 @@
 		"build": "tsc",
 		"dev": "tsc --watch",
 		"start": "node dist/cli.js",
+		"build:docs": "pnpm build && npx @sourcegraph/scip-typescript index && pnpm start -c .cire.json5",
 		"test": "vitest",
 		"test:ui": "vitest --ui",
 		"test:run": "vitest run",
@@ -18,7 +19,7 @@
 		"lint": "biome check",
 		"format": "biome format --write",
 		"lint:fix": "biome check --write",
-		"clean": "rm -rf dist"
+		"clean": "rm -rf dist output"
 	},
 	"keywords": [
 		"static-site-generator",

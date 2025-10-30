@@ -1,0 +1,17 @@
+[build]
+  command = "pnpm install && pnpm build && npx @sourcegraph/scip-typescript index && pnpm start -c .cire.json5"
+  publish = "output"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.deploy-preview]
+  command = "pnpm install && pnpm build && npx @sourcegraph/scip-typescript index && pnpm start -c .cire.json5"
+
+[context.production]
+  command = "pnpm install && pnpm build && npx @sourcegraph/scip-typescript index && pnpm start -c .cire.json5"

@@ -30,8 +30,8 @@
 
   // 输出配置
   output: {
-    directory: "./docs",              // 输出到 docs 目录，便于 GitHub Pages 部署
-    baseUrl: "/cire/",               // GitHub Pages 基础路径
+    directory: "./output",           // 输出到 output 目录，便于 Netlify 部署
+    baseUrl: "/",                    // Netlify 根路径
   },
 
   // LSP 配置（暂时不启用 SCIP）

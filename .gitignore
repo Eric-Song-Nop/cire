@@ -52,4 +52,7 @@ examples/*/dist/
 examples/*/node_modules/
 examples/*.html
 
+# Generated SCIP index files (local development only)
 *.scip
+
+# Note: output/ directory is NOT ignored as it's used for Netlify deployment
