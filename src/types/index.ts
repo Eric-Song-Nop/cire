@@ -33,10 +33,6 @@ export interface CireConfig {
 		indexPath?: string; // Path to LSIF/SCIP index file
 		provider?: "lsif" | "scip";
 	};
-	theme?: {
-		name?: string;
-		customCss?: string[];
-	};
 }
 
 // Intermediate representation for a file

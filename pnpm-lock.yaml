@@ -29,6 +29,9 @@ importers:
       google-protobuf:
         specifier: ^3.20.1
         version: 3.21.4
+      json5:
+        specifier: ^2.2.3
+        version: 2.2.3
       marked:
         specifier: ^9.1.6
         version: 9.1.6
@@ -51,6 +54,9 @@ importers:
       '@types/google-protobuf':
         specifier: ^3.15.12
         version: 3.15.12
+      '@types/json5':
+        specifier: ^2.2.0
+        version: 2.2.0
       '@types/node':
         specifier: ^20.9.0
         version: 20.19.23
@@ -503,6 +509,10 @@ packages:
   '@types/google-protobuf@3.15.12':
     resolution: {integrity: sha512-40um9QqwHjRS92qnOaDpL7RmDK15NuZYo9HihiJRbYkMQZlWnuH8AdvbMy8/o6lgLmKbDUKa+OALCltHdbOTpQ==, tarball: https://registry.npmjs.org/@types/google-protobuf/-/google-protobuf-3.15.12.tgz}
 
+  '@types/json5@2.2.0':
+    resolution: {integrity: sha512-NrVug5woqbvNZ0WX+Gv4R+L4TGddtmFek2u8RtccAgFZWtS9QXF2xCXY22/M4nzkaKF0q9Fc6M/5rxLDhfwc/A==, tarball: https://registry.npmjs.org/@types/json5/-/json5-2.2.0.tgz}
+    deprecated: This is a stub types definition. json5 provides its own type definitions, so you do not need this installed.
+
   '@types/node@20.19.23':
     resolution: {integrity: sha512-yIdlVVVHXpmqRhtyovZAcSy0MiPcYWGkoO4CGe/+jpP0hmNuihm4XhHbADpK++MsiLHP5MVlv+bcgdF99kSiFQ==, tarball: https://registry.npmjs.org/@types/node/-/node-20.19.23.tgz}
 
@@ -762,6 +772,11 @@ packages:
     peerDependenciesMeta:
       canvas:
         optional: true
+
+  json5@2.2.3:
+    resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==, tarball: https://registry.npmjs.org/json5/-/json5-2.2.3.tgz}
+    engines: {node: '>=6'}
+    hasBin: true
 
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==, tarball: https://registry.npmjs.org/lru-cache/-/lru-cache-10.4.3.tgz}
@@ -1407,6 +1422,10 @@ snapshots:
 
   '@types/google-protobuf@3.15.12': {}
 
+  '@types/json5@2.2.0':
+    dependencies:
+      json5: 2.2.3
+
   '@types/node@20.19.23':
     dependencies:
       undici-types: 6.21.0
@@ -1714,6 +1733,8 @@ snapshots:
       - postcss
       - supports-color
       - utf-8-validate
+
+  json5@2.2.3: {}
 
   lru-cache@10.4.3: {}
 

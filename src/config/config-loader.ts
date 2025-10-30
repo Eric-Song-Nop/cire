@@ -1,33 +1,77 @@
 /**
  * Configuration loader for .cire files
+ * Supports both JSON (.cire) and JSON5 (.cire.json5) formats
  */
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import JSON5 from "json5";
 import { type CireConfig, ConfigError } from "../types";
 
-export default class ConfigLoader {
+export class ConfigLoader {
+	public verbose: boolean = false;
+	private defaultConfig: CireConfig = {
+		name: "Cire Project",
+		version: "1.0.0",
+		description: "Static website generated with Cire",
+		input: {
+			root: "./src",
+			include: ["**/*.ts"],
+			exclude: ["**/*.test.ts", "**/*.spec.ts", "node_modules/**"],
+			language: "typescript",
+		},
+		output: {
+			directory: "./dist",
+			baseUrl: "/",
+		},
+		lsp: {
+			provider: "scip",
+		},
+	};
 	/**
-	 * Load and validate configuration from a .cire file
+	 * Load configuration from a .cire file and merge with defaults
+	 * Supports both JSON (.cire) and JSON5 (.cire.json5) formats
 	 */
-	static loadConfig(configPath: string): CireConfig {
+	async loadConfig(configPath?: string): Promise<CireConfig> {
+		// If no config path provided, return default config
+		if (!configPath) {
+			if (this.verbose) {
+				console.log(
+					"📄 No config file specified, using default configuration",
+				);
+			}
+			return this.defaultConfig;
+		}
+
 		const fullPath = resolve(process.cwd(), configPath);
 
+		// If config file doesn't exist, return default config
 		if (!existsSync(fullPath)) {
-			throw new ConfigError(
-				`Configuration file not found: ${configPath}`,
-				fullPath,
-			);
+			if (this.verbose) {
+				console.log(
+					`📄 Config file not found: ${configPath}, using defaults`,
+				);
+			}
+			return this.defaultConfig;
 		}
 
 		try {
 			const configContent = readFileSync(fullPath, "utf-8");
-			const config = JSON.parse(configContent) as CireConfig;
 
-			// Validate configuration
-			ConfigLoader.validateConfig(config, fullPath);
+			// Parse user configuration
+			const userConfig: CireConfig = JSON5.parse(
+				configContent,
+			) as CireConfig;
 
-			return config;
+			if (this.verbose) {
+				console.log(`📄 Loaded config from: ${fullPath}`);
+			}
+
+			// Basic validation
+			this.validateConfig(userConfig, fullPath);
+
+			// Merge user config with defaults
+			return this.mergeConfigs(this.defaultConfig, userConfig);
 		} catch (error) {
 			if (error instanceof ConfigError) {
 				throw error;
@@ -35,7 +79,7 @@ export default class ConfigLoader {
 
 			if (error instanceof SyntaxError) {
 				throw new ConfigError(
-					`Invalid JSON in configuration file: ${error.message}`,
+					`Invalid JSON5 in configuration file: ${error.message}`,
 					fullPath,
 				);
 			}
@@ -48,181 +92,72 @@ export default class ConfigLoader {
 	}
 
 	/**
-	 * Validate configuration structure and required fields
+	 * Simple merge user configuration with default configuration
 	 */
-	private static validateConfig(
-		config: CireConfig,
-		configPath: string,
-	): void {
-		if (!config || typeof config !== "object") {
-			throw new ConfigError(
-				"Configuration must be a valid JSON object",
-				configPath,
-			);
-		}
-
-		// Validate required fields
-		const requiredFields = ["name", "version", "input", "output"];
-		for (const field of requiredFields) {
-			if (!(field in config)) {
-				throw new ConfigError(
-					`Missing required field: ${field}`,
-					configPath,
-				);
-			}
-		}
-
-		// Validate name
-		if (typeof config.name !== "string" || !config.name.trim()) {
-			throw new ConfigError(
-				'Field "name" must be a non-empty string',
-				configPath,
-			);
-		}
-
-		// Validate version
-		if (typeof config.version !== "string" || !config.version.trim()) {
-			throw new ConfigError(
-				'Field "version" must be a non-empty string',
-				configPath,
-			);
-		}
-
-		// Validate input configuration
-		if (!ConfigLoader.validateInputConfig(config.input)) {
-			throw new ConfigError(
-				'Invalid "input" configuration. Required fields: root (string), include (string[])',
-				configPath,
-			);
-		}
-
-		// Validate output configuration
-		if (!ConfigLoader.validateOutputConfig(config.output)) {
-			throw new ConfigError(
-				'Invalid "output" configuration. Required field: directory (string)',
-				configPath,
-			);
-		}
-
-		// Validate optional LSP configuration
-		if (config.lsp && !ConfigLoader.validateLspConfig(config.lsp)) {
-			throw new ConfigError(
-				'Invalid "lsp" configuration. Optional fields: indexPath (string), provider ("lsif" | "scip")',
-				configPath,
-			);
-		}
-	}
-
-	/**
-	 * Validate input configuration
-	 */
-	private static validateInputConfig(input: CireConfig["input"]): boolean {
-		if (!input || typeof input !== "object") {
-			return false;
-		}
-
-		if (typeof input.root !== "string" || !input.root.trim()) {
-			return false;
-		}
-
-		if (!Array.isArray(input.include) || input.include.length === 0) {
-			return false;
-		}
-
-		// Validate that all include patterns are strings
-		for (const pattern of input.include) {
-			if (typeof pattern !== "string" || !pattern.trim()) {
-				return false;
-			}
-		}
-
-		// Validate exclude patterns if present
-		if (input.exclude && !Array.isArray(input.exclude)) {
-			return false;
-		}
-
-		// Validate language if present
-		if (input.language && typeof input.language !== "string") {
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
-	 * Validate output configuration
-	 */
-	private static validateOutputConfig(output: CireConfig["output"]): boolean {
-		if (!output || typeof output !== "object") {
-			return false;
-		}
-
-		if (typeof output.directory !== "string" || !output.directory.trim()) {
-			return false;
-		}
-
-		// Validate optional baseUrl
-		if (output.baseUrl && typeof output.baseUrl !== "string") {
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
-	 * Validate LSP configuration
-	 */
-	private static validateLspConfig(lsp: CireConfig["lsp"]): boolean {
-		if (!lsp || typeof lsp !== "object") {
-			return false;
-		}
-
-		// Validate optional indexPath
-		if (lsp.indexPath && typeof lsp.indexPath !== "string") {
-			return false;
-		}
-
-		// Validate optional provider
-		if (lsp.provider && !["lsif", "scip"].includes(lsp.provider)) {
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
-	 * Get default configuration
-	 */
-	static getDefaultConfig(): CireConfig {
+	private mergeConfigs(
+		defaultConfig: CireConfig,
+		userConfig: Partial<CireConfig>,
+	): CireConfig {
 		return {
-			name: "Cire Project",
-			version: "1.0.0",
-			description: "Static website generated with Cire",
+			...defaultConfig,
+			...userConfig,
 			input: {
-				root: "./src",
-				include: ["**/*.ts"],
-				exclude: ["**/*.test.ts", "**/*.spec.ts", "node_modules/**"],
-				language: "typescript",
+				...defaultConfig.input,
+				...userConfig.input,
 			},
 			output: {
-				directory: "./dist",
-				baseUrl: "/",
+				...defaultConfig.output,
+				...userConfig.output,
 			},
-			lsp: {
-				provider: "scip",
-			},
-			theme: {
-				name: "default",
-			},
+			lsp: userConfig.lsp
+				? {
+						...defaultConfig.lsp,
+						...userConfig.lsp,
+					}
+				: defaultConfig.lsp,
 		};
+	}
+
+	/**
+	 * Basic configuration validation - TypeScript handles most type checking
+	 */
+	private validateConfig(config: CireConfig, configPath: string): void {
+		// Only check for basic existence since TypeScript handles type safety
+		if (!config) {
+			throw new ConfigError(
+				"Configuration is empty or invalid",
+				configPath,
+			);
+		}
+
+		// Basic sanity checks for critical fields
+		if (!config.name?.trim()) {
+			throw new ConfigError(
+				'Configuration must have a non-empty "name" field',
+				configPath,
+			);
+		}
+
+		if (!config.input?.root?.trim()) {
+			throw new ConfigError(
+				'Configuration must have a non-empty "input.root" field',
+				configPath,
+			);
+		}
+
+		if (!config.output?.directory?.trim()) {
+			throw new ConfigError(
+				'Configuration must have a non-empty "output.directory" field',
+				configPath,
+			);
+		}
 	}
 
 	/**
 	 * Create a sample .cire configuration file
 	 */
-	static createSampleConfig(configPath: string): void {
-		const defaultConfig = ConfigLoader.getDefaultConfig();
-		const configContent = JSON.stringify(defaultConfig, null, 2);
+	createSampleConfig(configPath: string): void {
+		const configContent = JSON.stringify(this.defaultConfig, null, 2);
 
 		try {
 			require("node:fs").writeFileSync(

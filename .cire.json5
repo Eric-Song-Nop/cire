@@ -1,0 +1,42 @@
+{
+  // Cire 项目自身的配置文件 - 用于生成 Cire 项目的文档网站
+
+  name: "Cire",
+  version: "0.1.0",
+  description: "Static website generator providing IDE-like experiences for documentation",
+
+  // 源代码输入配置
+  input: {
+    root: "./src",                    // 源代码根目录
+
+    // 包含的文件模式
+    include: [
+      "**/*.ts",                      // TypeScript 源文件
+      "*.json5",                       // JSON5 配置文件（作为示例）
+    ],
+
+    // 排除的文件模式
+    exclude: [
+      "**/*.test.ts",                 // 测试文件
+      "**/*.spec.ts",
+      "**/*.d.ts",                    // TypeScript 声明文件
+      "node_modules/**",              // 依赖目录
+      "dist/**",                      // 构建输出目录
+      "templates/**",                 // 模板文件
+    ],
+
+    language: "typescript",           // 源代码语言
+  },
+
+  // 输出配置
+  output: {
+    directory: "./docs",              // 输出到 docs 目录，便于 GitHub Pages 部署
+    baseUrl: "/cire/",               // GitHub Pages 基础路径
+  },
+
+  // LSP 配置（暂时不启用 SCIP）
+  lsp: {
+    indexPath: "index.scip",
+    provider: "scip",
+  },
+}
