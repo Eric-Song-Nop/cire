@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import * as path from "node:path";
 import type { Analyzer, FileIR, TokenInfo } from "../types";
 
 import Parser = require("tree-sitter");
@@ -21,9 +22,9 @@ export class CommentAnalyzer implements Analyzer {
 	/**
 	 * Analyze file and extract block comments as tokens
 	 */
-	analyze(fileIR: FileIR): TokenInfo[] {
+	analyze(fileIR: FileIR, projectRoot: string): TokenInfo[] {
 		this.parser.setLanguage(this.parserLang);
-		const sourceCodePath = fileIR.filePath;
+		const sourceCodePath = path.join(projectRoot, fileIR.relativePath);
 		const sourceCode = fs.readFileSync(sourceCodePath).toString();
 		const tree = this.parser.parse(sourceCode);
 

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import * as path from "node:path";
 import type { Analyzer, FileIR, TokenInfo } from "../types";
 
 import Parser = require("tree-sitter");
@@ -43,14 +44,19 @@ export class TSHighLighter implements Analyzer {
 		};
 	}
 
-	analyze(fileIR: FileIR): TokenInfo[] {
+	analyze(fileIR: FileIR, projectRoot: string): TokenInfo[] {
 		this.parser.setLanguage(this.parserLang);
-		const sourceCodePath = fileIR.filePath;
+		const sourceCodePath = path.join(projectRoot, fileIR.relativePath);
 		const sourceCode = fs.readFileSync(sourceCodePath).toString();
 		const tree = this.parser.parse(sourceCode);
 
 		// Read query statements from template file
-		const queryPath = `templates/queries/${this.lang}/highlight.scm`;
+		const queryPath = path.resolve(
+			__dirname,
+			"../../templates/queries",
+			this.lang,
+			"highlight.scm",
+		);
 		const queryContent = fs.readFileSync(queryPath).toString();
 		const querier = new Parser.Query(this.parserLang, queryContent);
 

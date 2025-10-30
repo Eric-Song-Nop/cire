@@ -1,5 +1,5 @@
 /**
- * Core types for Cire static website generator
+ * # Core types for Cire static website generator
  */
 
 // Text span representing a range in source code
@@ -38,8 +38,8 @@ export interface CireConfig {
 
 // Intermediate representation for a file
 export interface FileIR {
-	// absolute file to the source code file
-	filePath: string;
+	// Relative path from project root
+	relativePath: string;
 	language: string;
 }
 
@@ -81,12 +81,12 @@ export type ColorScheme = {
  * Example analyzers: syntax highlighter, hover documentation extractor
  */
 export interface Analyzer {
-	analyze(fileIR: FileIR): TokenInfo[];
+	analyze(fileIR: FileIR, projectRoot: string): TokenInfo[];
 }
 
 // Generator interface
 export interface DocGenerator {
-	generate(fileIR: FileIR, info: TokenInfo[]): string;
+	generate(fileIR: FileIR, info: TokenInfo[], projectRoot: string): string;
 }
 
 // Error types

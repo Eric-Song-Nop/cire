@@ -34,7 +34,7 @@ export class SCIPAnalyzer implements Analyzer {
 		this.scipProjectRoot = path.resolve(projectRoot);
 	}
 
-	analyze(fileIR: FileIR): TokenInfo[] {
+	analyze(fileIR: FileIR, projectRoot: string): TokenInfo[] {
 		if (!this.scipIndex) {
 			console.warn(`SCIP index not loaded: ${this.scipIndexPath}`);
 			return [];
@@ -48,11 +48,17 @@ export class SCIPAnalyzer implements Analyzer {
 				this.scipProjectRoot,
 				doc.relative_path,
 			);
-			return fileIR.filePath === docAbsolutePath;
+			const ourAbsolutePath = path.resolve(
+				projectRoot,
+				fileIR.relativePath,
+			);
+			return ourAbsolutePath === docAbsolutePath;
 		});
 
 		if (!document) {
-			console.warn(`File not found in SCIP index: ${fileIR.filePath}`);
+			console.warn(
+				`File not found in SCIP index: ${fileIR.relativePath}`,
+			);
 			return [];
 		}
 		return this.resolveHoverInfo(document);
