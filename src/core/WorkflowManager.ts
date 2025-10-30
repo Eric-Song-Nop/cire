@@ -35,15 +35,18 @@ export class WorkflowManager {
 	/**
 	 * Process a file through the complete workflow
 	 */
-	processFile(fileIR: FileIR): string {
-		console.log(`Processing file: ${fileIR.filePath}`);
+	processFile(fileIR: FileIR, projectRoot: string): string {
+		console.log(`Processing file: ${fileIR.relativePath}`);
 
 		// Step 1: Extract syntax highlighting tokens
 		const allTokens: TokenInfo[] = [];
 
 		if (this.config.syntaxHighlighting) {
 			console.log("  → Extracting syntax highlighting tokens...");
-			const highlightTokens = this.tsHighlighter.analyze(fileIR);
+			const highlightTokens = this.tsHighlighter.analyze(
+				fileIR,
+				projectRoot,
+			);
 			allTokens.push(...highlightTokens);
 			console.log(`    Found ${highlightTokens.length} syntax tokens`);
 		}
@@ -51,7 +54,10 @@ export class WorkflowManager {
 		// Step 2: Extract comment tokens
 		if (this.config.commentToMarkdown) {
 			console.log("  → Extracting comment tokens...");
-			const commentTokens = this.commentAnalyzer.analyze(fileIR);
+			const commentTokens = this.commentAnalyzer.analyze(
+				fileIR,
+				projectRoot,
+			);
 			allTokens.push(...commentTokens);
 			console.log(`    Found ${commentTokens.length} comment tokens`);
 		}
@@ -59,7 +65,7 @@ export class WorkflowManager {
 		// Step 3: Extract hover documentation tokens
 		if (this.config.hoverDocumentation && this.scipAnalyzer) {
 			console.log("  → Extracting hover documentation tokens...");
-			const hoverTokens = this.scipAnalyzer.analyze(fileIR);
+			const hoverTokens = this.scipAnalyzer.analyze(fileIR, projectRoot);
 			allTokens.push(...hoverTokens);
 			console.log(`    Found ${hoverTokens.length} hover tokens`);
 		}
@@ -71,7 +77,11 @@ export class WorkflowManager {
 
 		// Step 5: Generate HTML
 		console.log("  → Generating HTML...");
-		const html = this.htmlGenerator.generate(fileIR, mergedTokens);
+		const html = this.htmlGenerator.generate(
+			fileIR,
+			mergedTokens,
+			projectRoot,
+		);
 		console.log("  → HTML generation complete!");
 
 		return html;

@@ -96,10 +96,14 @@ class HTMLGenerator implements DocGenerator {
 	/**
 	 * Generate HTML from FileIR and TokenInfo
 	 */
-	generate(fileIR: FileIR, info: TokenInfo[]): string {
+	generate(fileIR: FileIR, info: TokenInfo[], projectRoot: string): string {
 		try {
 			// Read source file content
-			const sourcePath = path.resolve(fileIR.filePath);
+			const sourcePath = path.join(projectRoot, fileIR.relativePath);
+			// Calculate relative path from output file back to output root (where CSS is)
+			const outputFileDir = path.dirname(fileIR.relativePath);
+			const cssPath =
+				path.relative(outputFileDir, "default.css") || "./default.css";
 			if (!fs.existsSync(sourcePath)) {
 				throw new Error(`Source file not found: ${sourcePath}`);
 			}
@@ -118,7 +122,7 @@ class HTMLGenerator implements DocGenerator {
 					sourceContent,
 					sortedTokens,
 				);
-				return this.wrapInHTMLTemplate(fileIR, htmlContent);
+				return this.wrapInHTMLTemplate(fileIR, htmlContent, cssPath);
 			}
 
 			// New Markdown-style rendering approach
@@ -127,10 +131,10 @@ class HTMLGenerator implements DocGenerator {
 				sourceContent,
 				info,
 			);
-			return this.wrapInHTMLTemplate(fileIR, htmlContent);
+			return this.wrapInHTMLTemplate(fileIR, htmlContent, cssPath);
 		} catch (error) {
 			throw new Error(
-				`Failed to generate HTML for ${fileIR.filePath}: ${error}`,
+				`Failed to generate HTML for ${fileIR.relativePath}: ${error}`,
 			);
 		}
 	}
@@ -507,15 +511,19 @@ class HTMLGenerator implements DocGenerator {
 	/**
 	 * Wrap content in HTML template with hover support
 	 */
-	private wrapInHTMLTemplate(fileIR: FileIR, content: string): string {
-		const fileName = path.basename(fileIR.filePath);
+	private wrapInHTMLTemplate(
+		fileIR: FileIR,
+		content: string,
+		cssPath: string,
+	): string {
+		const fileName = path.basename(fileIR.relativePath);
 		return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${fileName} - Cire Documentation</title>
-    <link rel="stylesheet" href="./default.css">
+    <link rel="stylesheet" href="${cssPath}">
 </head>
 <body>
     <div class="container">
