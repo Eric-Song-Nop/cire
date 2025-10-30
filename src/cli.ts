@@ -185,14 +185,17 @@ async function runSingleFileMode(options: any): Promise<void> {
 		console.log();
 	}
 
-	// Create FileIR
+	// Create FileIR with relative path (for single file, just the filename)
 	const fileIR = {
-		filePath: inputFile,
+		relativePath: path.basename(inputFile),
 		language: options.language,
 	};
 
+	// For single file mode, use input file's directory as projectRoot
+	const projectRoot = path.dirname(inputFile);
+
 	// Process file through workflow
-	const html = workflow.processFile(fileIR);
+	const html = workflow.processFile(fileIR, projectRoot);
 
 	// Write output file
 	console.log(chalk.blue(`💾 Writing HTML...`));

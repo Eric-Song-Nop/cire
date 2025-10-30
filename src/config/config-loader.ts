@@ -15,13 +15,13 @@ export class ConfigLoader {
 		version: "1.0.0",
 		description: "Static website generated with Cire",
 		input: {
-			root: "./src",
+			root: "src",
 			include: ["**/*.ts"],
 			exclude: ["**/*.test.ts", "**/*.spec.ts", "node_modules/**"],
 			language: "typescript",
 		},
 		output: {
-			directory: "./dist",
+			directory: "dist",
 			baseUrl: "/",
 		},
 		logLevel: "error",
@@ -99,7 +99,7 @@ export class ConfigLoader {
 		defaultConfig: CireConfig,
 		userConfig: Partial<CireConfig>,
 	): CireConfig {
-		return {
+		const resolvedConfig = {
 			...defaultConfig,
 			...userConfig,
 			input: {
@@ -117,6 +117,18 @@ export class ConfigLoader {
 					}
 				: defaultConfig.lsp,
 		};
+
+		// Resolve paths relative to current working directory
+		resolvedConfig.input.root = resolve(
+			process.cwd(),
+			resolvedConfig.input.root,
+		);
+		resolvedConfig.output.directory = resolve(
+			process.cwd(),
+			resolvedConfig.output.directory,
+		);
+
+		return resolvedConfig;
 	}
 
 	/**

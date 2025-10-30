@@ -25,13 +25,13 @@ export class ProjectBuilder {
 	}
 
 	/**
-	 * 构建整个项目
+	 * Build the entire project
 	 */
 	async buildProject(): Promise<BuildStats> {
 		const startTime = Date.now();
 
 		try {
-			// 1. 加载配置
+			// 1. Load configuration
 			const config = this.cireConfig;
 
 			if (config.logLevel === "info") {
@@ -40,28 +40,28 @@ export class ProjectBuilder {
 				console.log(`📤 Output directory: ${config.output.directory}`);
 			}
 
-			// 2. 扫描源代码文件
+			// 2. Scan source code files
 			const sourceFiles = await this.scanSourceFiles(config);
 
 			if (config.logLevel === "info") {
 				console.log(`🔍 Found ${sourceFiles.length} source files`);
 			}
 
-			// 3. 创建输出目录
+			// 3. Create output directory
 			const outputDir = config.output.directory;
 			await this.ensureOutputDirectory(outputDir);
 
-			// 4. 初始化 WorkflowManager
+			// 4. Initialize WorkflowManager
 			this.workflowManager = this.createWorkflowManager(config);
 
-			// 5. 批量处理文件
+			// 5. Batch process files
 			const stats = await this.processFiles(
 				sourceFiles,
 				outputDir,
 				config,
 			);
 
-			// 6. 复制资源文件
+			// 6. Copy asset files
 			await this.copyAssets(outputDir);
 
 			const processingTime = Date.now() - startTime;
@@ -76,16 +76,16 @@ export class ProjectBuilder {
 	}
 
 	/**
-	 * 扫描源代码文件
+	 * Scan source code files
 	 */
 	private async scanSourceFiles(config: CireConfig): Promise<string[]> {
 		const { root, include, exclude } = config.input;
 		const sourceFiles: string[] = [];
 
-		// 解析绝对路径
+		// Resolve absolute path
 		const absoluteRoot = path.resolve(root);
 
-		// 为每个 include 模式查找文件
+		// Find files for each include pattern
 		for (const pattern of include) {
 			const fullPattern = path.join(absoluteRoot, pattern);
 
@@ -103,12 +103,12 @@ export class ProjectBuilder {
 			sourceFiles.push(...files);
 		}
 
-		// 去重并排序
+		// Remove duplicates and sort
 		return [...new Set(sourceFiles)].sort();
 	}
 
 	/**
-	 * 确保输出目录存在
+	 * Ensure output directory exists
 	 */
 	private async ensureOutputDirectory(outputDir: string): Promise<void> {
 		const absoluteOutputDir = path.resolve(outputDir);
@@ -120,7 +120,7 @@ export class ProjectBuilder {
 	}
 
 	/**
-	 * 创建 WorkflowManager
+	 * Create WorkflowManager
 	 */
 	private createWorkflowManager(config: CireConfig): WorkflowManager {
 		const workflowConfig: WorkflowConfig = {
@@ -135,7 +135,7 @@ export class ProjectBuilder {
 	}
 
 	/**
-	 * 批量处理文件
+	 * Batch process files
 	 */
 	private async processFiles(
 		sourceFiles: string[],
@@ -165,7 +165,7 @@ export class ProjectBuilder {
 					processedFiles % 10 === 0 ||
 					processedFiles === sourceFiles.length
 				) {
-					// 每处理10个文件或处理完成时显示进度
+					// Show progress every 10 files or when complete
 					const progress = Math.round(
 						(processedFiles / sourceFiles.length) * 100,
 					);
@@ -179,7 +179,7 @@ export class ProjectBuilder {
 			}
 		}
 
-		// 清除进度行
+		// Clear progress line
 		if (!verbose) {
 			process.stdout.write(`\r${" ".repeat(50)}\r`);
 		}
@@ -196,7 +196,7 @@ export class ProjectBuilder {
 	}
 
 	/**
-	 * 处理单个文件
+	 * Process a single file
 	 */
 	private async processSingleFile(
 		sourceFile: string,
@@ -207,41 +207,37 @@ export class ProjectBuilder {
 			throw new Error("WorkflowManager not initialized");
 		}
 
-		// 创建 FileIR
+		// Calculate relative path and create FileIR
+		const projectRoot = config.input.root;
+		const relativePath = path.relative(projectRoot, sourceFile);
 		const fileIR: FileIR = {
-			filePath: sourceFile,
+			relativePath,
 			language: config.input.language,
 		};
 
-		// 通过 WorkflowManager 处理文件
-		const html = this.workflowManager.processFile(fileIR);
-
-		// 计算输出文件路径，保持目录结构
-		const relativePath = path.relative(
-			path.resolve(config.input.root),
-			sourceFile,
-		);
+		// Process file through WorkflowManager
+		const html = this.workflowManager.processFile(fileIR, projectRoot);
 		const outputPath = path.resolve(outputDir, relativePath);
 		const htmlOutputPath = outputPath.replace(/\.[^.]+$/, ".html");
 
-		// 确保输出文件的目录存在
+		// Ensure output file directory exists
 		const outputDirPath = path.dirname(htmlOutputPath);
 		if (!fs.existsSync(outputDirPath)) {
 			fs.mkdirSync(outputDirPath, { recursive: true });
 		}
 
-		// 写入 HTML 文件
+		// Write HTML file
 		fs.writeFileSync(htmlOutputPath, html, "utf-8");
 	}
 
 	/**
-	 * 复制资源文件（CSS、图片等）
+	 * Copy asset files (CSS, images, etc.)
 	 */
 	private async copyAssets(
 		outputDir: string,
 		verbose: boolean = false,
 	): Promise<void> {
-		const templateDir = path.resolve("templates");
+		const templateDir = path.resolve(__dirname, "../../templates");
 		const cssSourcePath = path.join(templateDir, "default.css");
 		const cssTargetPath = path.resolve(outputDir, "default.css");
 
