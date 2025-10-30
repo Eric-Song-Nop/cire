@@ -19,6 +19,7 @@ export interface CireConfig {
 	name: string;
 	version: string;
 	description?: string;
+	logLevel: "info" | "warn" | "error" | "debug";
 	input: {
 		root: string;
 		include: string[];
@@ -86,15 +87,6 @@ export interface Analyzer {
 // Generator interface
 export interface DocGenerator {
 	generate(fileIR: FileIR, info: TokenInfo[]): string;
-}
-
-// CLI options
-export interface CLIOptions {
-	input?: string;
-	output?: string;
-	config?: string;
-	watch?: boolean;
-	verbose?: boolean;
 }
 
 // Error types
