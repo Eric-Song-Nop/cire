@@ -338,7 +338,7 @@ export class NavigationGenerator {
             </main>
 
             <footer class="footer">
-                <p>Generated with <a href="https://github.com/sourcegraph/cire">Cire</a> •
+                <p>Generated with <a href="https://github.com/Eric-Song-Nop/cire">Cire</a> •
                    Version ${config.version} •
                    Built on ${new Date().toLocaleDateString()}</p>
             </footer>
