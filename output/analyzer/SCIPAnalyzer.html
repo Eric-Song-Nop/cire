@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCIPAnalyzer.ts - Cire Documentation</title>
+    <link rel="stylesheet" href="../default.css">
+</head>
+<body>
+    <div class="container">
+        <div class="markdown-content"><div class="token-comment"><h1>Scip Analyzer Class</h1>
+<p>SCIPAnalyzer uses a SCIP index file to provide lsp documentation
+<a href="https://github.com/sourcegraph/scip">SCIP</a> is the source indexing format provided by Sourcegraph.
+Which is a lsif compatible implementation with accelerated with google-protobuf.</p>
+</div>
+<pre><code class="language-ts"><span class="keyword">import</span> <span class="punctuation bracket">{</span> <span class="variable">readFileSync</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string">&quot;node:fs&quot;</span><span class="punctuation delimiter">;</span>
+<span class="keyword">import</span> <span class="variable">path</span> <span class="keyword">from</span> <span class="string">&quot;node:path&quot;</span><span class="punctuation delimiter">;</span>
+<span class="keyword">import</span> <span class="punctuation bracket">{</span> <span class="variable">scip</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string">&quot;@sourcegraph/scip/bindings/typescript/scip.js&quot;</span><span class="punctuation delimiter">;</span>
+<span class="keyword">import</span> <span class="punctuation bracket">{</span> <span class="type variable constructor">BinaryReader</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string">&quot;google-protobuf&quot;</span><span class="punctuation delimiter">;</span>
+<span class="keyword">import</span> <span class="keyword">type</span> <span class="punctuation bracket">{</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/Analyzer#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface Analyzer
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h1&gt;Interface for analyzer&lt;/h1&gt;
+&lt;p&gt;Example analyzers: syntax highlighter, hover documentation extractor&lt;/p&gt;
+">Analyzer</span><span class="punctuation delimiter">,</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/FileIR#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface FileIR
+&lt;/code&gt;&lt;/pre&gt;
+">FileIR</span><span class="punctuation delimiter">,</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/TokenInfo#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;type TokenInfo
+&lt;/code&gt;&lt;/pre&gt;
+">TokenInfo</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;module &amp;quot;index.ts&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+">&quot;../types&quot;</span><span class="punctuation delimiter">;</span>
+
+<span class="keyword keyword">export</span> <span class="keyword">class</span> <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;class SCIPAnalyzer
+&lt;/code&gt;&lt;/pre&gt;
+">SCIPAnalyzer</span> <span class="keyword">implements</span> <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/Analyzer#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface Analyzer
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h1&gt;Interface for analyzer&lt;/h1&gt;
+&lt;p&gt;Example analyzers: syntax highlighter, hover documentation extractor&lt;/p&gt;
+">Analyzer</span> <span class="punctuation bracket">{</span>
+	<span class="keyword">private</span> <span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipIndexPath." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipIndexPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndexPath</span>: <span class="type builtin">string</span><span class="punctuation delimiter">;</span>
+	<span class="keyword">private</span> <span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipIndex." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipIndex: Index
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndex</span>: <span class="variable">scip</span><span class="punctuation delimiter">.</span><span class="type">Index</span><span class="punctuation delimiter">;</span>
+	<span class="keyword">private</span> <span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipProjectRoot." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipProjectRoot: string
+&lt;/code&gt;&lt;/pre&gt;
+">scipProjectRoot</span>: <span class="type builtin">string</span><span class="punctuation delimiter">;</span>
+
+	<span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#`&lt;constructor&gt;`()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;constructor(scipIndexPath: string): SCIPAnalyzer
+&lt;/code&gt;&lt;/pre&gt;
+">constructor</span><span class="punctuation bracket">(</span><span class="variable parameter variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#`&lt;constructor&gt;`().(scipIndexPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) scipIndexPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndexPath</span>: <span class="type builtin">string</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+		<span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipIndexPath." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipIndexPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndexPath</span> <span class="operator">=</span> <span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#`&lt;constructor&gt;`().(scipIndexPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) scipIndexPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndexPath</span><span class="punctuation delimiter">;</span>
+		<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var reader: BinaryReader
+&lt;/code&gt;&lt;/pre&gt;
+">reader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="type variable constructor">BinaryReader</span><span class="punctuation bracket">(</span><span class="variable function">readFileSync</span><span class="punctuation bracket">(</span><span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipIndexPath." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipIndexPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndexPath</span><span class="punctuation bracket">)</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="comment">// load with protobuf</span>
+		<span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipIndex." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipIndex: Index
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndex</span> <span class="operator">=</span> <span class="variable">scip</span><span class="punctuation delimiter">.</span><span class="property">Index</span><span class="punctuation delimiter">.</span><span class="property function method">deserialize</span><span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var reader: BinaryReader
+&lt;/code&gt;&lt;/pre&gt;
+">reader</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+		<span class="comment">// Handle project_root that might be in URI format (file:/path)</span>
+		<span class="keyword">let</span> <span class="variable token-hoverable" data-hover-content="local 5" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var projectRoot: string
+&lt;/code&gt;&lt;/pre&gt;
+">projectRoot</span> <span class="operator">=</span> <span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipIndex." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipIndex: Index
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndex</span><span class="punctuation delimiter">.</span><span class="property">metadata</span><span class="punctuation delimiter">.</span><span class="property">project_root</span><span class="punctuation delimiter">;</span>
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 5" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var projectRoot: string
+&lt;/code&gt;&lt;/pre&gt;
+">projectRoot</span><span class="punctuation delimiter">.</span><span class="property function method">startsWith</span><span class="punctuation bracket">(</span><span class="string">&quot;file:&quot;</span><span class="punctuation bracket">)</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="comment">// Remove file:// or file: prefix and decode URI</span>
+			<span class="variable token-hoverable" data-hover-content="local 5" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var projectRoot: string
+&lt;/code&gt;&lt;/pre&gt;
+">projectRoot</span> <span class="operator">=</span> <span class="variable function">decodeURIComponent</span><span class="punctuation bracket">(</span>
+				<span class="variable token-hoverable" data-hover-content="local 5" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var projectRoot: string
+&lt;/code&gt;&lt;/pre&gt;
+">projectRoot</span><span class="punctuation delimiter">.</span><span class="property function method">replace</span><span class="punctuation bracket">(</span><span class="string special operator">/</span><span class="string special">^file:\/+</span><span class="string special operator">/</span><span class="punctuation delimiter">,</span> <span class="string">&quot;/&quot;</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipProjectRoot." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipProjectRoot: string
+&lt;/code&gt;&lt;/pre&gt;
+">scipProjectRoot</span> <span class="operator">=</span> <span class="variable">path</span><span class="punctuation delimiter">.</span><span class="property function method">resolve</span><span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 5" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var projectRoot: string
+&lt;/code&gt;&lt;/pre&gt;
+">projectRoot</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+	<span class="punctuation bracket">}</span>
+
+	<span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#analyze()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) analyze(fileIR: FileIR, projectRoot: string): TokenInfo[]
+&lt;/code&gt;&lt;/pre&gt;
+">analyze</span><span class="punctuation bracket">(</span><span class="variable parameter variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#analyze().(fileIR)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) fileIR: FileIR
+&lt;/code&gt;&lt;/pre&gt;
+">fileIR</span>: <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/FileIR#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface FileIR
+&lt;/code&gt;&lt;/pre&gt;
+">FileIR</span><span class="punctuation delimiter">,</span> <span class="variable parameter variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#analyze().(projectRoot)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) projectRoot: string
+&lt;/code&gt;&lt;/pre&gt;
+">projectRoot</span>: <span class="type builtin">string</span><span class="punctuation bracket">)</span>: <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/TokenInfo#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;type TokenInfo
+&lt;/code&gt;&lt;/pre&gt;
+">TokenInfo</span><span class="punctuation bracket">[</span><span class="punctuation bracket">]</span> <span class="punctuation bracket">{</span>
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipIndex." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipIndex: Index
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndex</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="variable variable builtin">console</span><span class="punctuation delimiter">.</span><span class="property function method">warn</span><span class="punctuation bracket">(</span><span class="string">`SCIP index not loaded: </span><span class="string embedded punctuation special">${</span><span class="string embedded variable builtin">this</span><span class="string embedded punctuation delimiter">.</span><span class="string embedded property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipIndexPath." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipIndexPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndexPath</span><span class="string embedded punctuation bracket punctuation special">}</span><span class="string">`</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="keyword">return</span> <span class="punctuation bracket">[</span><span class="punctuation bracket">]</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="comment">// Find document in SCIP index - try different possible APIs</span>
+		<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 8" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var documentsList: Document[]
+&lt;/code&gt;&lt;/pre&gt;
+">documentsList</span> <span class="operator">=</span> <span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipIndex." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipIndex: Index
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndex</span><span class="punctuation delimiter">.</span><span class="property">documents</span><span class="punctuation delimiter">;</span>
+
+		<span class="keyword">const</span> <span class="variable variable builtin token-hoverable" data-hover-content="local 11" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var document: Document | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">document</span> <span class="operator">=</span> <span class="variable token-hoverable" data-hover-content="local 8" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var documentsList: Document[]
+&lt;/code&gt;&lt;/pre&gt;
+">documentsList</span><span class="punctuation delimiter">.</span><span class="property function method">find</span><span class="punctuation bracket">(</span><span class="punctuation bracket">(</span><span class="variable parameter variable token-hoverable" data-hover-content="local 14" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) doc: Document
+&lt;/code&gt;&lt;/pre&gt;
+">doc</span><span class="punctuation bracket">)</span> <span class="operator">=&gt;</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 17" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var docAbsolutePath: string
+&lt;/code&gt;&lt;/pre&gt;
+">docAbsolutePath</span> <span class="operator">=</span> <span class="variable">path</span><span class="punctuation delimiter">.</span><span class="property function method">resolve</span><span class="punctuation bracket">(</span>
+				<span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipProjectRoot." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipProjectRoot: string
+&lt;/code&gt;&lt;/pre&gt;
+">scipProjectRoot</span><span class="punctuation delimiter">,</span>
+				<span class="variable token-hoverable" data-hover-content="local 14" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) doc: Document
+&lt;/code&gt;&lt;/pre&gt;
+">doc</span><span class="punctuation delimiter">.</span><span class="property">relative_path</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 20" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var ourAbsolutePath: string
+&lt;/code&gt;&lt;/pre&gt;
+">ourAbsolutePath</span> <span class="operator">=</span> <span class="variable">path</span><span class="punctuation delimiter">.</span><span class="property function method">resolve</span><span class="punctuation bracket">(</span>
+				<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#analyze().(projectRoot)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) projectRoot: string
+&lt;/code&gt;&lt;/pre&gt;
+">projectRoot</span><span class="punctuation delimiter">,</span>
+				<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#analyze().(fileIR)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) fileIR: FileIR
+&lt;/code&gt;&lt;/pre&gt;
+">fileIR</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/FileIR#relativePath." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) relativePath: string
+&lt;/code&gt;&lt;/pre&gt;
+">relativePath</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="keyword">return</span> <span class="variable token-hoverable" data-hover-content="local 20" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var ourAbsolutePath: string
+&lt;/code&gt;&lt;/pre&gt;
+">ourAbsolutePath</span> <span class="operator">===</span> <span class="variable token-hoverable" data-hover-content="local 17" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var docAbsolutePath: string
+&lt;/code&gt;&lt;/pre&gt;
+">docAbsolutePath</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable variable builtin token-hoverable" data-hover-content="local 11" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var document: Document | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">document</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="variable variable builtin">console</span><span class="punctuation delimiter">.</span><span class="property function method">warn</span><span class="punctuation bracket">(</span>
+				<span class="string">`File not found in SCIP index: </span><span class="string embedded punctuation special">${</span><span class="string embedded variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#analyze().(fileIR)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) fileIR: FileIR
+&lt;/code&gt;&lt;/pre&gt;
+">fileIR</span><span class="string embedded punctuation delimiter">.</span><span class="string embedded property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/FileIR#relativePath." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) relativePath: string
+&lt;/code&gt;&lt;/pre&gt;
+">relativePath</span><span class="string embedded punctuation bracket punctuation special">}</span><span class="string">`</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="keyword">return</span> <span class="punctuation bracket">[</span><span class="punctuation bracket">]</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+		<span class="keyword">return</span> <span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#resolveHoverInfo()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) resolveHoverInfo(document: Document): TokenInfo[]
+&lt;/code&gt;&lt;/pre&gt;
+">resolveHoverInfo</span><span class="punctuation bracket">(</span><span class="variable variable builtin token-hoverable" data-hover-content="local 11" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var document: Document | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">document</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+	<span class="punctuation bracket">}</span>
+
+	<span class="keyword">private</span> <span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#resolveHoverInfo()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) resolveHoverInfo(document: Document): TokenInfo[]
+&lt;/code&gt;&lt;/pre&gt;
+">resolveHoverInfo</span><span class="punctuation bracket">(</span><span class="variable parameter variable variable builtin token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#resolveHoverInfo().(document)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) document: Document
+&lt;/code&gt;&lt;/pre&gt;
+">document</span>: <span class="variable">scip</span><span class="punctuation delimiter">.</span><span class="type">Document</span><span class="punctuation bracket">)</span>: <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/TokenInfo#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;type TokenInfo
+&lt;/code&gt;&lt;/pre&gt;
+">TokenInfo</span><span class="punctuation bracket">[</span><span class="punctuation bracket">]</span> <span class="punctuation bracket">{</span>
+		<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 23" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrences: Occurrence[]
+&lt;/code&gt;&lt;/pre&gt;
+">occurrences</span> <span class="operator">=</span> <span class="variable variable builtin token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#resolveHoverInfo().(document)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) document: Document
+&lt;/code&gt;&lt;/pre&gt;
+">document</span><span class="punctuation delimiter">.</span><span class="property">occurrences</span><span class="punctuation delimiter">;</span>
+		<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 26" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var tokenInfos: TokenInfo[]
+&lt;/code&gt;&lt;/pre&gt;
+">tokenInfos</span>: <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/TokenInfo#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;type TokenInfo
+&lt;/code&gt;&lt;/pre&gt;
+">TokenInfo</span><span class="punctuation bracket">[</span><span class="punctuation bracket">]</span> <span class="operator">=</span> <span class="punctuation bracket">[</span><span class="punctuation bracket">]</span><span class="punctuation delimiter">;</span>
+
+		<span class="variable variable builtin">console</span><span class="punctuation delimiter">.</span><span class="property function method">log</span><span class="punctuation bracket">(</span><span class="string">`🔍 Analyzing document: </span><span class="string embedded punctuation special">${</span><span class="string embedded variable variable builtin token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#resolveHoverInfo().(document)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) document: Document
+&lt;/code&gt;&lt;/pre&gt;
+">document</span><span class="string embedded punctuation delimiter">.</span><span class="string embedded property">relative_path</span><span class="string embedded punctuation bracket punctuation special">}</span><span class="string">`</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="variable variable builtin">console</span><span class="punctuation delimiter">.</span><span class="property function method">log</span><span class="punctuation bracket">(</span>
+			<span class="string">`  📄 Found </span><span class="string embedded punctuation special">${</span><span class="string embedded variable token-hoverable" data-hover-content="local 23" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrences: Occurrence[]
+&lt;/code&gt;&lt;/pre&gt;
+">occurrences</span><span class="string embedded"> ? </span><span class="string embedded variable token-hoverable" data-hover-content="local 23" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrences: Occurrence[]
+&lt;/code&gt;&lt;/pre&gt;
+">occurrences</span><span class="string embedded punctuation delimiter">.</span><span class="string embedded property">length</span><span class="string embedded"> : </span><span class="string embedded number">0</span><span class="string embedded punctuation bracket punctuation special">}</span><span class="string"> occurrences`</span><span class="punctuation delimiter">,</span>
+		<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable token-hoverable" data-hover-content="local 23" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrences: Occurrence[]
+&lt;/code&gt;&lt;/pre&gt;
+">occurrences</span> <span class="operator">||</span> <span class="variable token-hoverable" data-hover-content="local 23" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrences: Occurrence[]
+&lt;/code&gt;&lt;/pre&gt;
+">occurrences</span><span class="punctuation delimiter">.</span><span class="property">length</span> <span class="operator">===</span> <span class="number">0</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">return</span> <span class="punctuation bracket">[</span><span class="punctuation bracket">]</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="keyword">for</span> <span class="punctuation bracket">(</span><span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 29" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrence: Occurrence
+&lt;/code&gt;&lt;/pre&gt;
+">occurrence</span> <span class="keyword">of</span> <span class="variable token-hoverable" data-hover-content="local 23" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrences: Occurrence[]
+&lt;/code&gt;&lt;/pre&gt;
+">occurrences</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="comment">// Skip occurrences without range or symbol</span>
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable token-hoverable" data-hover-content="local 29" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrence: Occurrence
+&lt;/code&gt;&lt;/pre&gt;
+">occurrence</span><span class="punctuation delimiter">.</span><span class="property">range</span> <span class="operator">||</span> <span class="operator">!</span><span class="variable token-hoverable" data-hover-content="local 29" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrence: Occurrence
+&lt;/code&gt;&lt;/pre&gt;
+">occurrence</span><span class="punctuation delimiter">.</span><span class="property">symbol</span><span class="punctuation bracket">)</span> <span class="keyword">continue</span><span class="punctuation delimiter">;</span>
+
+			<span class="comment">// Convert SCIP range to TextSpan</span>
+			<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 32" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var span: { start: { line: number; column: number; }; end: { line: number; column: number; }; } | null
+&lt;/code&gt;&lt;/pre&gt;
+">span</span> <span class="operator">=</span> <span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#convertSCIPRangeToTextSpan()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) convertSCIPRangeToTextSpan(range: number[]): { start: { line: number; column: number; }; end: { line: number; column: number; }; } | null
+&lt;/code&gt;&lt;/pre&gt;
+">convertSCIPRangeToTextSpan</span><span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 29" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrence: Occurrence
+&lt;/code&gt;&lt;/pre&gt;
+">occurrence</span><span class="punctuation delimiter">.</span><span class="property">range</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable token-hoverable" data-hover-content="local 32" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var span: { start: { line: number; column: number; }; end: { line: number; column: number; }; } | null
+&lt;/code&gt;&lt;/pre&gt;
+">span</span><span class="punctuation bracket">)</span> <span class="keyword">continue</span><span class="punctuation delimiter">;</span>
+
+			<span class="comment">// Try to find symbol documentation from symbols in the document first</span>
+			<span class="keyword">let</span> <span class="variable token-hoverable" data-hover-content="local 35" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var symbolInfo: SymbolInformation | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">symbolInfo</span> <span class="operator">=</span> <span class="variable variable builtin token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#resolveHoverInfo().(document)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) document: Document
+&lt;/code&gt;&lt;/pre&gt;
+">document</span><span class="punctuation delimiter">.</span><span class="property">symbols</span><span class="punctuation delimiter">?.</span><span class="property function method">find</span><span class="punctuation bracket">(</span>
+				<span class="punctuation bracket">(</span><span class="variable parameter variable token-hoverable" data-hover-content="local 38" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) sym: SymbolInformation
+&lt;/code&gt;&lt;/pre&gt;
+">sym</span><span class="punctuation bracket">)</span> <span class="operator">=&gt;</span> <span class="variable token-hoverable" data-hover-content="local 38" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) sym: SymbolInformation
+&lt;/code&gt;&lt;/pre&gt;
+">sym</span><span class="punctuation delimiter">.</span><span class="property">symbol</span> <span class="operator">===</span> <span class="variable token-hoverable" data-hover-content="local 29" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrence: Occurrence
+&lt;/code&gt;&lt;/pre&gt;
+">occurrence</span><span class="punctuation delimiter">.</span><span class="property">symbol</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+			<span class="comment">// If not found in current document, search globally across all documents</span>
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable token-hoverable" data-hover-content="local 35" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var symbolInfo: SymbolInformation | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">symbolInfo</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+				<span class="variable token-hoverable" data-hover-content="local 35" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var symbolInfo: SymbolInformation | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">symbolInfo</span> <span class="operator">=</span> <span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#findSymbolGlobally()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) findSymbolGlobally(symbolName: string): SymbolInformation | undefined
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Find symbol information across all documents in the SCIP index&lt;/p&gt;
+">findSymbolGlobally</span><span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 29" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrence: Occurrence
+&lt;/code&gt;&lt;/pre&gt;
+">occurrence</span><span class="punctuation delimiter">.</span><span class="property">symbol</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="punctuation bracket">}</span>
+
+			<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 41" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var doc: string[]
+&lt;/code&gt;&lt;/pre&gt;
+">doc</span>: <span class="type builtin">string</span><span class="punctuation bracket">[</span><span class="punctuation bracket">]</span> <span class="operator">=</span> <span class="punctuation bracket">[</span><span class="punctuation bracket">]</span><span class="punctuation delimiter">;</span>
+			<span class="comment">// Add documentation if available</span>
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 35" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var symbolInfo: SymbolInformation | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">symbolInfo</span><span class="punctuation delimiter">?.</span><span class="property">documentation</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+				<span class="variable token-hoverable" data-hover-content="local 41" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var doc: string[]
+&lt;/code&gt;&lt;/pre&gt;
+">doc</span><span class="punctuation delimiter">.</span><span class="property function method">push</span><span class="punctuation bracket">(</span>...<span class="variable token-hoverable" data-hover-content="local 35" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var symbolInfo: SymbolInformation | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">symbolInfo</span><span class="punctuation delimiter">.</span><span class="property">documentation</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="punctuation bracket">}</span>
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 29" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrence: Occurrence
+&lt;/code&gt;&lt;/pre&gt;
+">occurrence</span><span class="punctuation delimiter">.</span><span class="property">override_documentation</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+				<span class="variable token-hoverable" data-hover-content="local 41" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var doc: string[]
+&lt;/code&gt;&lt;/pre&gt;
+">doc</span><span class="punctuation delimiter">.</span><span class="property function method">push</span><span class="punctuation bracket">(</span>...<span class="variable token-hoverable" data-hover-content="local 29" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrence: Occurrence
+&lt;/code&gt;&lt;/pre&gt;
+">occurrence</span><span class="punctuation delimiter">.</span><span class="property">override_documentation</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="punctuation bracket">}</span>
+
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 41" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var doc: string[]
+&lt;/code&gt;&lt;/pre&gt;
+">doc</span><span class="punctuation delimiter">.</span><span class="property">length</span> <span class="operator">===</span> <span class="number">0</span><span class="punctuation bracket">)</span> <span class="keyword">continue</span><span class="punctuation delimiter">;</span>
+
+			<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 44" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var tokenInfo: TokenInfo
+&lt;/code&gt;&lt;/pre&gt;
+">tokenInfo</span>: <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/TokenInfo#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;type TokenInfo
+&lt;/code&gt;&lt;/pre&gt;
+">TokenInfo</span> <span class="operator">=</span> <span class="punctuation bracket">{</span>
+				<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/TokenInfo#typeLiteral17:meta." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) meta: MetaInfo[]
+&lt;/code&gt;&lt;/pre&gt;
+">meta</span>: <span class="punctuation bracket">[</span>
+					<span class="punctuation bracket">{</span>
+						<span class="property token-hoverable token-hoverable" data-hover-content="local 51" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) b: TreeNode
+&lt;/code&gt;&lt;/pre&gt;
+">type</span>: <span class="string">&quot;hover&quot;</span><span class="punctuation delimiter">,</span>
+						<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/content0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) content: string
+&lt;/code&gt;&lt;/pre&gt;
+">content</span>: <span class="variable token-hoverable" data-hover-content="local 29" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var occurrence: Occurrence
+&lt;/code&gt;&lt;/pre&gt;
+">occurrence</span><span class="punctuation delimiter">.</span><span class="property">symbol</span><span class="punctuation delimiter">,</span>
+						<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/documentation0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) documentation: string
+&lt;/code&gt;&lt;/pre&gt;
+">documentation</span>: <span class="variable token-hoverable" data-hover-content="local 41" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var doc: string[]
+&lt;/code&gt;&lt;/pre&gt;
+">doc</span><span class="punctuation delimiter">.</span><span class="property function method">join</span><span class="punctuation bracket">(</span><span class="string">&quot;\n&quot;</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">,</span>
+					<span class="punctuation bracket">}</span><span class="punctuation delimiter">,</span>
+				<span class="punctuation bracket">]</span><span class="punctuation delimiter">,</span>
+				<span class="token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/TokenInfo#typeLiteral17:span." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) span: TextSpan
+&lt;/code&gt;&lt;/pre&gt;
+">span</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">}</span><span class="punctuation delimiter">;</span>
+
+			<span class="variable token-hoverable" data-hover-content="local 26" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var tokenInfos: TokenInfo[]
+&lt;/code&gt;&lt;/pre&gt;
+">tokenInfos</span><span class="punctuation delimiter">.</span><span class="property function method">push</span><span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 44" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var tokenInfo: TokenInfo
+&lt;/code&gt;&lt;/pre&gt;
+">tokenInfo</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="variable variable builtin">console</span><span class="punctuation delimiter">.</span><span class="property function method">log</span><span class="punctuation bracket">(</span><span class="string">`  🎯 Generated </span><span class="string embedded punctuation special">${</span><span class="string embedded variable token-hoverable" data-hover-content="local 26" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var tokenInfos: TokenInfo[]
+&lt;/code&gt;&lt;/pre&gt;
+">tokenInfos</span><span class="string embedded punctuation delimiter">.</span><span class="string embedded property">length</span><span class="string embedded punctuation bracket punctuation special">}</span><span class="string"> hover tokens`</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="keyword">return</span> <span class="variable token-hoverable" data-hover-content="local 26" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var tokenInfos: TokenInfo[]
+&lt;/code&gt;&lt;/pre&gt;
+">tokenInfos</span><span class="punctuation delimiter">;</span>
+	<span class="punctuation bracket">}</span></code></pre>
+<div class="token-comment"><p>Find symbol information across all documents in the SCIP index</p>
+</div>
+<pre><code class="language-ts"><span class="keyword">private</span> <span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#findSymbolGlobally()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) findSymbolGlobally(symbolName: string): SymbolInformation | undefined
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Find symbol information across all documents in the SCIP index&lt;/p&gt;
+">findSymbolGlobally</span><span class="punctuation bracket">(</span>
+		<span class="variable parameter variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#findSymbolGlobally().(symbolName)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) symbolName: string
+&lt;/code&gt;&lt;/pre&gt;
+">symbolName</span>: <span class="type builtin">string</span><span class="punctuation delimiter">,</span>
+	<span class="punctuation bracket">)</span>: <span class="variable">scip</span><span class="punctuation delimiter">.</span><span class="type">SymbolInformation</span> <span class="operator">|</span> <span class="constant builtin">undefined</span> <span class="punctuation bracket">{</span>
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipIndex." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipIndex: Index
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndex</span><span class="punctuation delimiter">?.</span><span class="property">documents</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">return</span> <span class="constant builtin">undefined</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="comment">// Search through all documents for the symbol</span>
+		<span class="keyword">for</span> <span class="punctuation bracket">(</span><span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 56" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var doc: Document
+&lt;/code&gt;&lt;/pre&gt;
+">doc</span> <span class="keyword">of</span> <span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#scipIndex." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) scipIndex: Index
+&lt;/code&gt;&lt;/pre&gt;
+">scipIndex</span><span class="punctuation delimiter">.</span><span class="property">documents</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable token-hoverable" data-hover-content="local 56" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var doc: Document
+&lt;/code&gt;&lt;/pre&gt;
+">doc</span><span class="punctuation delimiter">.</span><span class="property">symbols</span><span class="punctuation bracket">)</span> <span class="keyword">continue</span><span class="punctuation delimiter">;</span>
+
+			<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 59" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var symbolInfo: SymbolInformation | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">symbolInfo</span> <span class="operator">=</span> <span class="variable token-hoverable" data-hover-content="local 56" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var doc: Document
+&lt;/code&gt;&lt;/pre&gt;
+">doc</span><span class="punctuation delimiter">.</span><span class="property">symbols</span><span class="punctuation delimiter">.</span><span class="property function method">find</span><span class="punctuation bracket">(</span>
+				<span class="punctuation bracket">(</span><span class="variable parameter variable token-hoverable" data-hover-content="local 62" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) sym: SymbolInformation
+&lt;/code&gt;&lt;/pre&gt;
+">sym</span><span class="punctuation bracket">)</span> <span class="operator">=&gt;</span> <span class="variable token-hoverable" data-hover-content="local 62" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) sym: SymbolInformation
+&lt;/code&gt;&lt;/pre&gt;
+">sym</span><span class="punctuation delimiter">.</span><span class="property">symbol</span> <span class="operator">===</span> <span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#findSymbolGlobally().(symbolName)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) symbolName: string
+&lt;/code&gt;&lt;/pre&gt;
+">symbolName</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 59" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var symbolInfo: SymbolInformation | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">symbolInfo</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+				<span class="variable variable builtin">console</span><span class="punctuation delimiter">.</span><span class="property function method">log</span><span class="punctuation bracket">(</span>
+					<span class="string">`  🌍 Found symbol in external document: </span><span class="string embedded punctuation special">${</span><span class="string embedded variable token-hoverable" data-hover-content="local 56" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var doc: Document
+&lt;/code&gt;&lt;/pre&gt;
+">doc</span><span class="string embedded punctuation delimiter">.</span><span class="string embedded property">relative_path</span><span class="string embedded punctuation bracket punctuation special">}</span><span class="string">`</span><span class="punctuation delimiter">,</span>
+				<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+				<span class="keyword">return</span> <span class="variable token-hoverable" data-hover-content="local 59" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var symbolInfo: SymbolInformation | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">symbolInfo</span><span class="punctuation delimiter">;</span>
+			<span class="punctuation bracket">}</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="keyword">return</span> <span class="constant builtin">undefined</span><span class="punctuation delimiter">;</span>
+	<span class="punctuation bracket">}</span>
+
+	<span class="keyword">private</span> <span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#convertSCIPRangeToTextSpan()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) convertSCIPRangeToTextSpan(range: number[]): { start: { line: number; column: number; }; end: { line: number; column: number; }; } | null
+&lt;/code&gt;&lt;/pre&gt;
+">convertSCIPRangeToTextSpan</span><span class="punctuation bracket">(</span><span class="variable parameter variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#convertSCIPRangeToTextSpan().(range)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) range: number[]
+&lt;/code&gt;&lt;/pre&gt;
+">range</span>: <span class="type builtin">number</span><span class="punctuation bracket">[</span><span class="punctuation bracket">]</span><span class="punctuation bracket">)</span>: <span class="punctuation bracket">{</span>
+		<span class="property token-hoverable" data-hover-content="local 65" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) start: { line: number; column: number; }
+&lt;/code&gt;&lt;/pre&gt;
+">start</span>: <span class="punctuation bracket">{</span> <span class="property token-hoverable" data-hover-content="local 67" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) line: number
+&lt;/code&gt;&lt;/pre&gt;
+">line</span>: <span class="type builtin">number</span><span class="punctuation delimiter">;</span> <span class="property token-hoverable" data-hover-content="local 68" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) column: number
+&lt;/code&gt;&lt;/pre&gt;
+">column</span>: <span class="type builtin">number</span> <span class="punctuation bracket">}</span><span class="punctuation delimiter">;</span>
+		<span class="property token-hoverable" data-hover-content="local 69" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) end: { line: number; column: number; }
+&lt;/code&gt;&lt;/pre&gt;
+">end</span>: <span class="punctuation bracket">{</span> <span class="property token-hoverable" data-hover-content="local 71" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) line: number
+&lt;/code&gt;&lt;/pre&gt;
+">line</span>: <span class="type builtin">number</span><span class="punctuation delimiter">;</span> <span class="property token-hoverable" data-hover-content="local 72" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) column: number
+&lt;/code&gt;&lt;/pre&gt;
+">column</span>: <span class="type builtin">number</span> <span class="punctuation bracket">}</span><span class="punctuation delimiter">;</span>
+	<span class="punctuation bracket">}</span> <span class="operator">|</span> <span class="constant builtin">null</span> <span class="punctuation bracket">{</span>
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#convertSCIPRangeToTextSpan().(range)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) range: number[]
+&lt;/code&gt;&lt;/pre&gt;
+">range</span> <span class="operator">||</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#convertSCIPRangeToTextSpan().(range)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) range: number[]
+&lt;/code&gt;&lt;/pre&gt;
+">range</span><span class="punctuation delimiter">.</span><span class="property">length</span> <span class="operator">!==</span> <span class="number">3</span> <span class="operator">&amp;&amp;</span> <span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#convertSCIPRangeToTextSpan().(range)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) range: number[]
+&lt;/code&gt;&lt;/pre&gt;
+">range</span><span class="punctuation delimiter">.</span><span class="property">length</span> <span class="operator">!==</span> <span class="number">4</span><span class="punctuation bracket">)</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">return</span> <span class="constant builtin">null</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#convertSCIPRangeToTextSpan().(range)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) range: number[]
+&lt;/code&gt;&lt;/pre&gt;
+">range</span><span class="punctuation delimiter">.</span><span class="property">length</span> <span class="operator">===</span> <span class="number">4</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="comment">// Format: [startLine, startCharacter, endLine, endCharacter]</span>
+			<span class="keyword">const</span> <span class="punctuation bracket">[</span><span class="variable token-hoverable" data-hover-content="local 77" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var startLine: number
+&lt;/code&gt;&lt;/pre&gt;
+">startLine</span><span class="punctuation delimiter">,</span> <span class="variable token-hoverable" data-hover-content="local 78" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var startCharacter: number
+&lt;/code&gt;&lt;/pre&gt;
+">startCharacter</span><span class="punctuation delimiter">,</span> <span class="variable token-hoverable" data-hover-content="local 79" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var endLine: number
+&lt;/code&gt;&lt;/pre&gt;
+">endLine</span><span class="punctuation delimiter">,</span> <span class="variable token-hoverable" data-hover-content="local 80" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var endCharacter: number
+&lt;/code&gt;&lt;/pre&gt;
+">endCharacter</span><span class="punctuation bracket">]</span> <span class="operator">=</span> <span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#convertSCIPRangeToTextSpan().(range)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) range: number[]
+&lt;/code&gt;&lt;/pre&gt;
+">range</span><span class="punctuation delimiter">;</span>
+			<span class="keyword">return</span> <span class="punctuation bracket">{</span>
+				<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/start0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) start: { line: number; column: number; }
+&lt;/code&gt;&lt;/pre&gt;
+">start</span>: <span class="punctuation bracket">{</span>
+					<span class="property token-hoverable" data-hover-content="local 67" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) line: number
+&lt;/code&gt;&lt;/pre&gt;
+">line</span>: <span class="variable token-hoverable" data-hover-content="local 77" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var startLine: number
+&lt;/code&gt;&lt;/pre&gt;
+">startLine</span><span class="punctuation delimiter">,</span>
+					<span class="property token-hoverable" data-hover-content="local 68" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) column: number
+&lt;/code&gt;&lt;/pre&gt;
+">column</span>: <span class="variable token-hoverable" data-hover-content="local 78" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var startCharacter: number
+&lt;/code&gt;&lt;/pre&gt;
+">startCharacter</span><span class="punctuation delimiter">,</span>
+				<span class="punctuation bracket">}</span><span class="punctuation delimiter">,</span>
+				<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/end0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) end: { line: number; column: number; }
+&lt;/code&gt;&lt;/pre&gt;
+">end</span>: <span class="punctuation bracket">{</span>
+					<span class="property token-hoverable" data-hover-content="local 71" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) line: number
+&lt;/code&gt;&lt;/pre&gt;
+">line</span>: <span class="variable token-hoverable" data-hover-content="local 79" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var endLine: number
+&lt;/code&gt;&lt;/pre&gt;
+">endLine</span><span class="punctuation delimiter">,</span>
+					<span class="property token-hoverable" data-hover-content="local 72" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) column: number
+&lt;/code&gt;&lt;/pre&gt;
+">column</span>: <span class="variable token-hoverable" data-hover-content="local 80" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var endCharacter: number
+&lt;/code&gt;&lt;/pre&gt;
+">endCharacter</span><span class="punctuation delimiter">,</span>
+				<span class="punctuation bracket">}</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">}</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span> <span class="keyword">else</span> <span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#convertSCIPRangeToTextSpan().(range)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) range: number[]
+&lt;/code&gt;&lt;/pre&gt;
+">range</span><span class="punctuation delimiter">.</span><span class="property">length</span> <span class="operator">===</span> <span class="number">3</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="comment">// Format: [startLine, startCharacter, endCharacter] (startLine == endLine)</span>
+			<span class="keyword">const</span> <span class="punctuation bracket">[</span><span class="variable token-hoverable" data-hover-content="local 85" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var startLine: number
+&lt;/code&gt;&lt;/pre&gt;
+">startLine</span><span class="punctuation delimiter">,</span> <span class="variable token-hoverable" data-hover-content="local 86" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var startCharacter: number
+&lt;/code&gt;&lt;/pre&gt;
+">startCharacter</span><span class="punctuation delimiter">,</span> <span class="variable token-hoverable" data-hover-content="local 87" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var endCharacter: number
+&lt;/code&gt;&lt;/pre&gt;
+">endCharacter</span><span class="punctuation bracket">]</span> <span class="operator">=</span> <span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/SCIPAnalyzer#convertSCIPRangeToTextSpan().(range)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) range: number[]
+&lt;/code&gt;&lt;/pre&gt;
+">range</span><span class="punctuation delimiter">;</span>
+			<span class="keyword">return</span> <span class="punctuation bracket">{</span>
+				<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/start1:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) start: { line: number; column: number; }
+&lt;/code&gt;&lt;/pre&gt;
+">start</span>: <span class="punctuation bracket">{</span>
+					<span class="property token-hoverable" data-hover-content="local 67" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) line: number
+&lt;/code&gt;&lt;/pre&gt;
+">line</span>: <span class="variable token-hoverable" data-hover-content="local 85" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var startLine: number
+&lt;/code&gt;&lt;/pre&gt;
+">startLine</span><span class="punctuation delimiter">,</span>
+					<span class="property token-hoverable" data-hover-content="local 68" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) column: number
+&lt;/code&gt;&lt;/pre&gt;
+">column</span>: <span class="variable token-hoverable" data-hover-content="local 86" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var startCharacter: number
+&lt;/code&gt;&lt;/pre&gt;
+">startCharacter</span><span class="punctuation delimiter">,</span>
+				<span class="punctuation bracket">}</span><span class="punctuation delimiter">,</span>
+				<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/analyzer/`SCIPAnalyzer.ts`/end1:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) end: { line: number; column: number; }
+&lt;/code&gt;&lt;/pre&gt;
+">end</span>: <span class="punctuation bracket">{</span>
+					<span class="property token-hoverable" data-hover-content="local 71" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) line: number
+&lt;/code&gt;&lt;/pre&gt;
+">line</span>: <span class="variable token-hoverable" data-hover-content="local 85" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var startLine: number
+&lt;/code&gt;&lt;/pre&gt;
+">startLine</span><span class="punctuation delimiter">,</span>
+					<span class="property token-hoverable" data-hover-content="local 72" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) column: number
+&lt;/code&gt;&lt;/pre&gt;
+">column</span>: <span class="variable token-hoverable" data-hover-content="local 87" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var endCharacter: number
+&lt;/code&gt;&lt;/pre&gt;
+">endCharacter</span><span class="punctuation delimiter">,</span>
+				<span class="punctuation bracket">}</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">}</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="keyword">return</span> <span class="constant builtin">null</span><span class="punctuation delimiter">;</span>
+	<span class="punctuation bracket">}</span>
+<span class="punctuation bracket">}</span></code></pre></div>
+    </div>
+
+    <div class="hover-tooltip" id="tooltip">
+        <div class="symbol-name" id="tooltip-symbol"></div>
+        <div class="documentation" id="tooltip-docs"></div>
+    </div>
+
+    <script>
+        const tooltip = document.getElementById('tooltip');
+        const tooltipSymbol = document.getElementById('tooltip-symbol');
+        const tooltipDocs = document.getElementById('tooltip-docs');
+        let hideTimeout;
+
+        function parseMarkdown(text) {
+            if (!text) return '';
+            // Markdown is now preprocessed on server-side using marked
+            // Just return the pre-rendered HTML directly
+            return text;
+        }
+
+        function showTooltip(element, content, documentation) {
+            clearTimeout(hideTimeout);
+
+            tooltipSymbol.textContent = content;
+            tooltipDocs.innerHTML = parseMarkdown(documentation || '');
+
+            const rect = element.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+
+            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            let top = rect.top - tooltipRect.height - 10;
+
+            // Keep tooltip within viewport
+            if (left < 10) left = 10;
+            if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10;
+            }
+            if (top < 10) {
+                top = rect.bottom + 10;
+            }
+
+            tooltip.style.left = left + window.scrollX + 'px';
+            tooltip.style.top = top + window.scrollY + 'px';
+
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            hideTimeout = setTimeout(() => {
+                tooltip.classList.remove('visible');
+            }, 100);
+        }
+
+        // Add hover listeners to all hoverable tokens
+        document.addEventListener('DOMContentLoaded', () => {
+            const hoverableElements = document.querySelectorAll('[data-hover-content]');
+
+            hoverableElements.forEach(element => {
+                const content = element.getAttribute('data-hover-content');
+                const documentation = element.getAttribute('data-hover-documentation');
+
+                element.addEventListener('mouseenter', (e) => {
+                    showTooltip(e.target, content, documentation);
+                });
+
+                element.addEventListener('mouseleave', hideTooltip);
+            });
+
+            // Hide tooltip when clicking elsewhere
+            document.addEventListener('click', hideTooltip);
+        });
+    </script>
+</body>
+</html>

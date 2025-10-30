@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cire - Documentation</title>
+    <link rel="stylesheet" href="./default.css">
+    <style>
+        /* Tree Navigation Styles */
+        body {
+            background-color: #ffffff !important;
+        }
+
+        .container {
+            background-color: #ffffff !important;
+        }
+        .navigation-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .site-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid var(--border-color, #e1e5e9);
+        }
+
+        .site-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a202c !important;
+            margin-bottom: 0.5rem;
+        }
+
+        .site-description {
+            font-size: 1.25rem;
+            color: #2d3748 !important;
+            margin-bottom: 1rem;
+        }
+
+        .site-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            font-size: 1.1rem;
+            color: #2d3748 !important;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tree-navigation {
+            background: var(--bg-color, #ffffff);
+            border: 1px solid var(--border-color, #e1e5e9);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .tree-navigation ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .tree-item {
+            margin: 0;
+        }
+
+        .tree-children {
+            margin-left: 1.5rem;
+            position: relative;
+        }
+
+        .tree-children::before {
+            content: "";
+            position: absolute;
+            left: -0.75rem;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: var(--border-color, #e1e5e9);
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            transition: background-color 0.15s ease;
+            cursor: pointer;
+        }
+
+        .tree-node:hover {
+            background-color: var(--hover-bg-color, #f6f8fa);
+        }
+
+        .tree-icon {
+            margin-right: 0.75rem;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .tree-label {
+            font-weight: 600;
+            color: #1a202c !important;
+        }
+
+        .tree-link {
+            color: #2d3748 !important;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .tree-link:hover {
+            color: var(--link-color, #0969da);
+            text-decoration: underline;
+        }
+
+        .tree-directory .tree-icon {
+            color: var(--directory-color, #0969da);
+        }
+
+        .tree-file .tree-icon {
+            color: var(--file-color, #656d76);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color, #e1e5e9);
+            color: #2d3748 !important;
+            font-size: 0.9rem;
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .site-title,
+            .tree-label,
+            .tree-link {
+                color: var(--text-color, #f0f6fc);
+            }
+
+            .site-description,
+            .site-stats,
+            .footer {
+                color: var(--text-secondary-color, #8b949e);
+            }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .navigation-container {
+                padding: 1rem;
+            }
+
+            .site-title {
+                font-size: 2rem;
+            }
+
+            .site-stats {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .tree-children {
+                margin-left: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navigation-container">
+            <header class="site-header">
+                <h1 class="site-title">Cire</h1>
+                <p class="site-description">Static website generator providing IDE-like experiences for documentation</p>
+                <div class="site-stats">
+                    <div class="stat-item">
+                        <span>📁</span>
+                        <span>8 directories</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>📄</span>
+                        <span>16 files</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>🔤</span>
+                        <span>typescript</span>
+                    </div>
+                </div>
+            </header>
+
+            <main class="tree-navigation">
+                <ul>
+                    <li class="tree-item">
+  <div class="tree-node tree-directory" data-level="0" style="color: #1a202c !important;">
+    <span class="tree-icon" style="color: #0969da !important;">📁</span>
+    <span class="tree-label" style="color: #1a202c !important; font-weight: 600 !important;">analyzer</span>
+  </div>
+  <ul class="tree-children">
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="analyzer/CommentAnalyzer.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">CommentAnalyzer.ts</a>
+    </div>
+  </li>
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="analyzer/SCIPAnalyzer.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">SCIPAnalyzer.ts</a>
+    </div>
+  </li>
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="analyzer/TSHighlighter.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">TSHighlighter.ts</a>
+    </div>
+  </li>
+  </ul>
+</li>
+<li class="tree-item">
+  <div class="tree-node tree-file" data-level="0" style="color: #2d3748 !important;">
+    <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+    <a href="cli.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">cli.ts</a>
+  </div>
+</li>
+<li class="tree-item">
+  <div class="tree-node tree-directory" data-level="0" style="color: #1a202c !important;">
+    <span class="tree-icon" style="color: #0969da !important;">📁</span>
+    <span class="tree-label" style="color: #1a202c !important; font-weight: 600 !important;">config</span>
+  </div>
+  <ul class="tree-children">
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="config/config-loader.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">config-loader.ts</a>
+    </div>
+  </li>
+  </ul>
+</li>
+<li class="tree-item">
+  <div class="tree-node tree-directory" data-level="0" style="color: #1a202c !important;">
+    <span class="tree-icon" style="color: #0969da !important;">📁</span>
+    <span class="tree-label" style="color: #1a202c !important; font-weight: 600 !important;">core</span>
+  </div>
+  <ul class="tree-children">
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="core/ProjectBuilder.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">ProjectBuilder.ts</a>
+    </div>
+  </li>
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="core/WorkflowManager.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">WorkflowManager.ts</a>
+    </div>
+  </li>
+  </ul>
+</li>
+<li class="tree-item">
+  <div class="tree-node tree-directory" data-level="0" style="color: #1a202c !important;">
+    <span class="tree-icon" style="color: #0969da !important;">📁</span>
+    <span class="tree-label" style="color: #1a202c !important; font-weight: 600 !important;">generator</span>
+  </div>
+  <ul class="tree-children">
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="generator/HTMLGenerator.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">HTMLGenerator.ts</a>
+    </div>
+  </li>
+  </ul>
+</li>
+<li class="tree-item">
+  <div class="tree-node tree-directory" data-level="0" style="color: #1a202c !important;">
+    <span class="tree-icon" style="color: #0969da !important;">📁</span>
+    <span class="tree-label" style="color: #1a202c !important; font-weight: 600 !important;">passes</span>
+  </div>
+  <ul class="tree-children">
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="passes/CommentMergePass.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">CommentMergePass.ts</a>
+    </div>
+  </li>
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="passes/index.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">index.ts</a>
+    </div>
+  </li>
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="passes/MergeTokenPass.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">MergeTokenPass.ts</a>
+    </div>
+  </li>
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="passes/SortTokenPass.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">SortTokenPass.ts</a>
+    </div>
+  </li>
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="passes/TokenInfoPass.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">TokenInfoPass.ts</a>
+    </div>
+  </li>
+  </ul>
+</li>
+<li class="tree-item">
+  <div class="tree-node tree-directory" data-level="0" style="color: #1a202c !important;">
+    <span class="tree-icon" style="color: #0969da !important;">📁</span>
+    <span class="tree-label" style="color: #1a202c !important; font-weight: 600 !important;">types</span>
+  </div>
+  <ul class="tree-children">
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="types/index.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">index.ts</a>
+    </div>
+  </li>
+  </ul>
+</li>
+<li class="tree-item">
+  <div class="tree-node tree-directory" data-level="0" style="color: #1a202c !important;">
+    <span class="tree-icon" style="color: #0969da !important;">📁</span>
+    <span class="tree-label" style="color: #1a202c !important; font-weight: 600 !important;">utils</span>
+  </div>
+  <ul class="tree-children">
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="utils/logger.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">logger.ts</a>
+    </div>
+  </li>
+  <li class="tree-item">
+    <div class="tree-node tree-file" data-level="1" style="color: #2d3748 !important;">
+      <span class="tree-icon" style="color: #656d76 !important;">📘</span>
+      <a href="utils/navigation-generator.html" class="tree-link" style="color: #2d3748 !important; font-weight: 500 !important; font-size: 1rem !important;">navigation-generator.ts</a>
+    </div>
+  </li>
+  </ul>
+</li>
+
+                </ul>
+            </main>
+
+            <footer class="footer">
+                <p>Generated with <a href="https://github.com/sourcegraph/cire">Cire</a> •
+                   Version 0.1.0 •
+                   Built on 10/31/2025</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Interactive tree functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const treeNodes = document.querySelectorAll('.tree-directory');
+
+            treeNodes.forEach(node => {
+                node.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const parentLi = this.parentElement;
+                    const children = parentLi.querySelector('.tree-children');
+
+                    if (children) {
+                        const isHidden = children.style.display === 'none';
+                        children.style.display = isHidden ? 'block' : 'none';
+
+                        // Update icon
+                        const icon = this.querySelector('.tree-icon');
+                        if (icon) {
+                            icon.textContent = isHidden ? '📁' : '📂';
+                        }
+                    }
+                });
+            });
+
+            // Add keyboard navigation
+            const treeItems = Array.from(document.querySelectorAll('.tree-node'));
+            let currentIndex = -1;
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentIndex = Math.min(currentIndex + 1, treeItems.length - 1);
+                    treeItems[currentIndex]?.focus();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentIndex = Math.max(currentIndex - 1, 0);
+                    treeItems[currentIndex]?.focus();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

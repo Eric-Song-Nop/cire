@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>config-loader.ts - Cire Documentation</title>
+    <link rel="stylesheet" href="../default.css">
+</head>
+<body>
+    <div class="container">
+        <div class="markdown-content"><div class="token-comment"><p>Configuration loader for .cire files
+Supports both JSON (.cire) and JSON5 (.cire.json5) formats</p>
+</div>
+<pre><code class="language-ts"><span class="keyword">import</span> <span class="punctuation bracket">{</span> <span class="variable">existsSync</span><span class="punctuation delimiter">,</span> <span class="variable">readFileSync</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string">&quot;node:fs&quot;</span><span class="punctuation delimiter">;</span>
+<span class="keyword">import</span> <span class="punctuation bracket">{</span> <span class="variable">resolve</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string">&quot;node:path&quot;</span><span class="punctuation delimiter">;</span>
+<span class="keyword">import</span> <span class="type variable constructor constant">JSON5</span> <span class="keyword">from</span> <span class="string">&quot;json5&quot;</span><span class="punctuation delimiter">;</span>
+<span class="keyword">import</span> <span class="punctuation bracket">{</span> <span class="keyword">type</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">CireConfig</span><span class="punctuation delimiter">,</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/ConfigError#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;class ConfigError
+&lt;/code&gt;&lt;/pre&gt;
+">ConfigError</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;module &amp;quot;index.ts&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+">&quot;../types&quot;</span><span class="punctuation delimiter">;</span>
+
+<span class="keyword keyword">export</span> <span class="keyword">class</span> <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;class ConfigLoader
+&lt;/code&gt;&lt;/pre&gt;
+">ConfigLoader</span> <span class="punctuation bracket">{</span>
+	<span class="keyword">public</span> <span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#verbose." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) verbose: boolean
+&lt;/code&gt;&lt;/pre&gt;
+">verbose</span>: <span class="type builtin">boolean</span> <span class="operator">=</span> <span class="constant builtin">false</span><span class="punctuation delimiter">;</span>
+	<span class="keyword">private</span> <span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#defaultConfig." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) defaultConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">defaultConfig</span>: <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">CireConfig</span> <span class="operator">=</span> <span class="punctuation bracket">{</span>
+		<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#name." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) name: string
+&lt;/code&gt;&lt;/pre&gt;
+">name</span>: <span class="string">&quot;Cire Project&quot;</span><span class="punctuation delimiter">,</span>
+		<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#version." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) version: string
+&lt;/code&gt;&lt;/pre&gt;
+">version</span>: <span class="string">&quot;1.0.0&quot;</span><span class="punctuation delimiter">,</span>
+		<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#description." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) description: string | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">description</span>: <span class="string">&quot;Static website generated with Cire&quot;</span><span class="punctuation delimiter">,</span>
+		<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#input." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }
+&lt;/code&gt;&lt;/pre&gt;
+">input</span>: <span class="punctuation bracket">{</span>
+			<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#input.typeLiteral0:root." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) root: string
+&lt;/code&gt;&lt;/pre&gt;
+">root</span>: <span class="string">&quot;src&quot;</span><span class="punctuation delimiter">,</span>
+			<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#input.typeLiteral0:include." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) include: string[]
+&lt;/code&gt;&lt;/pre&gt;
+">include</span>: <span class="punctuation bracket">[</span><span class="string">&quot;**/*.ts&quot;</span><span class="punctuation bracket">]</span><span class="punctuation delimiter">,</span>
+			<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#input.typeLiteral0:exclude." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) exclude: string[] | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">exclude</span>: <span class="punctuation bracket">[</span><span class="string">&quot;**/*.test.ts&quot;</span><span class="punctuation delimiter">,</span> <span class="string">&quot;**/*.spec.ts&quot;</span><span class="punctuation delimiter">,</span> <span class="string">&quot;node_modules/**&quot;</span><span class="punctuation bracket">]</span><span class="punctuation delimiter">,</span>
+			<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#input.typeLiteral0:language." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) language: string
+&lt;/code&gt;&lt;/pre&gt;
+">language</span>: <span class="string">&quot;typescript&quot;</span><span class="punctuation delimiter">,</span>
+		<span class="punctuation bracket">}</span><span class="punctuation delimiter">,</span>
+		<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#output." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) output: { directory: string; baseUrl?: string | undefined; }
+&lt;/code&gt;&lt;/pre&gt;
+">output</span>: <span class="punctuation bracket">{</span>
+			<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#output.typeLiteral1:directory." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) directory: string
+&lt;/code&gt;&lt;/pre&gt;
+">directory</span>: <span class="string">&quot;dist&quot;</span><span class="punctuation delimiter">,</span>
+			<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#output.typeLiteral1:baseUrl." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) baseUrl: string | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">baseUrl</span>: <span class="string">&quot;/&quot;</span><span class="punctuation delimiter">,</span>
+		<span class="punctuation bracket">}</span><span class="punctuation delimiter">,</span>
+		<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#logLevel." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) logLevel: &amp;quot;info&amp;quot; | &amp;quot;warn&amp;quot; | &amp;quot;error&amp;quot; | &amp;quot;debug&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+">logLevel</span>: <span class="string">&quot;error&quot;</span><span class="punctuation delimiter">,</span>
+		<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#lsp." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | &amp;quot;scip&amp;quot; | undefined; } | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">lsp</span>: <span class="punctuation bracket">{</span>
+			<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/provider0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) provider: &amp;quot;scip&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;
+">provider</span>: <span class="string">&quot;scip&quot;</span><span class="punctuation delimiter">,</span>
+		<span class="punctuation bracket">}</span><span class="punctuation delimiter">,</span>
+	<span class="punctuation bracket">}</span><span class="punctuation delimiter">;</span></code></pre>
+<div class="token-comment"><p>Load configuration from a .cire file and merge with defaults
+Supports both JSON (.cire) and JSON5 (.cire.json5) formats</p>
+</div>
+<pre><code class="language-ts"><span class="keyword">async</span> <span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#loadConfig()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) loadConfig(configPath?: string | undefined): Promise&amp;lt;CireConfig&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Load configuration from a .cire file and merge with defaults
+Supports both JSON (.cire) and JSON5 (.cire.json5) formats&lt;/p&gt;
+">loadConfig</span><span class="punctuation bracket">(</span><span class="variable parameter variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#loadConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span>?: <span class="type builtin">string</span><span class="punctuation bracket">)</span>: <span class="type">Promise</span><span class="punctuation bracket operator">&lt;</span><span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">CireConfig</span><span class="punctuation bracket operator">&gt;</span> <span class="punctuation bracket">{</span>
+		<span class="comment">// If no config path provided, return default config</span>
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#loadConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#verbose." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) verbose: boolean
+&lt;/code&gt;&lt;/pre&gt;
+">verbose</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+				<span class="variable variable builtin">console</span><span class="punctuation delimiter">.</span><span class="property function method">log</span><span class="punctuation bracket">(</span>
+					<span class="string">&quot;📄 No config file specified, using default configuration&quot;</span><span class="punctuation delimiter">,</span>
+				<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="punctuation bracket">}</span>
+			<span class="keyword">return</span> <span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#defaultConfig." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) defaultConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">defaultConfig</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var fullPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">fullPath</span> <span class="operator">=</span> <span class="variable function">resolve</span><span class="punctuation bracket">(</span><span class="variable">process</span><span class="punctuation delimiter">.</span><span class="property function method">cwd</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">,</span> <span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#loadConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+		<span class="comment">// If config file doesn&#039;t exist, return default config</span>
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable function">existsSync</span><span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var fullPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">fullPath</span><span class="punctuation bracket">)</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#verbose." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) verbose: boolean
+&lt;/code&gt;&lt;/pre&gt;
+">verbose</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+				<span class="variable variable builtin">console</span><span class="punctuation delimiter">.</span><span class="property function method">log</span><span class="punctuation bracket">(</span>
+					<span class="string">`📄 Config file not found: </span><span class="string embedded punctuation special">${</span><span class="string embedded variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#loadConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span><span class="string embedded punctuation bracket punctuation special">}</span><span class="string">, using defaults`</span><span class="punctuation delimiter">,</span>
+				<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="punctuation bracket">}</span>
+			<span class="keyword">return</span> <span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#defaultConfig." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) defaultConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">defaultConfig</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="keyword">try</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 5" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var configContent: string
+&lt;/code&gt;&lt;/pre&gt;
+">configContent</span> <span class="operator">=</span> <span class="variable function">readFileSync</span><span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var fullPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">fullPath</span><span class="punctuation delimiter">,</span> <span class="string">&quot;utf-8&quot;</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+			<span class="comment">// Parse user configuration</span>
+			<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 8" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var userConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">userConfig</span>: <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">CireConfig</span> <span class="operator">=</span> <span class="type variable constructor constant">JSON5</span><span class="punctuation delimiter">.</span><span class="property function method token-hoverable" data-hover-content="local 11" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) part: string
+&lt;/code&gt;&lt;/pre&gt;
+">parse</span><span class="punctuation bracket">(</span>
+				<span class="variable token-hoverable" data-hover-content="local 5" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var configContent: string
+&lt;/code&gt;&lt;/pre&gt;
+">configContent</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span> <span class="keyword">as</span> <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">CireConfig</span><span class="punctuation delimiter">;</span>
+
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#verbose." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) verbose: boolean
+&lt;/code&gt;&lt;/pre&gt;
+">verbose</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+				<span class="variable variable builtin">console</span><span class="punctuation delimiter">.</span><span class="property function method">log</span><span class="punctuation bracket">(</span><span class="string">`📄 Loaded config from: </span><span class="string embedded punctuation special">${</span><span class="string embedded variable token-hoverable" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var fullPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">fullPath</span><span class="string embedded punctuation bracket punctuation special">}</span><span class="string">`</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="punctuation bracket">}</span>
+
+			<span class="comment">// Basic validation</span>
+			<span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) validateConfig(config: CireConfig, configPath: string): void
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Basic configuration validation - TypeScript handles most type checking&lt;/p&gt;
+">validateConfig</span><span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 8" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var userConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">userConfig</span><span class="punctuation delimiter">,</span> <span class="variable token-hoverable" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var fullPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">fullPath</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+			<span class="comment">// Merge user config with defaults</span>
+			<span class="keyword">return</span> <span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) mergeConfigs(defaultConfig: CireConfig, userConfig: Partial&amp;lt;CireConfig&amp;gt;): CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Simple merge user configuration with default configuration&lt;/p&gt;
+">mergeConfigs</span><span class="punctuation bracket">(</span><span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#defaultConfig." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) defaultConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">defaultConfig</span><span class="punctuation delimiter">,</span> <span class="variable token-hoverable" data-hover-content="local 8" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var userConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">userConfig</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span> <span class="keyword">catch</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 14" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 14" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span> <span class="keyword">instanceof</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/ConfigError#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;class ConfigError
+&lt;/code&gt;&lt;/pre&gt;
+">ConfigError</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+				<span class="keyword">throw</span> <span class="variable token-hoverable" data-hover-content="local 14" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span><span class="punctuation delimiter">;</span>
+			<span class="punctuation bracket">}</span>
+
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 14" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span> <span class="keyword">instanceof</span> <span class="type variable constructor">SyntaxError</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+				<span class="keyword">throw</span> <span class="keyword">new</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/ConfigError#`&lt;constructor&gt;`()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;constructor(message: string, filePath?: string | undefined): ConfigError
+&lt;/code&gt;&lt;/pre&gt;
+">ConfigError</span><span class="punctuation bracket">(</span>
+					<span class="string">`Invalid JSON5 in configuration file: </span><span class="string embedded punctuation special">${</span><span class="string embedded variable token-hoverable" data-hover-content="local 14" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span><span class="string embedded punctuation delimiter">.</span><span class="string embedded property">message</span><span class="string embedded punctuation bracket punctuation special">}</span><span class="string">`</span><span class="punctuation delimiter">,</span>
+					<span class="variable token-hoverable" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var fullPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">fullPath</span><span class="punctuation delimiter">,</span>
+				<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+			<span class="punctuation bracket">}</span>
+
+			<span class="keyword">throw</span> <span class="keyword">new</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/ConfigError#`&lt;constructor&gt;`()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;constructor(message: string, filePath?: string | undefined): ConfigError
+&lt;/code&gt;&lt;/pre&gt;
+">ConfigError</span><span class="punctuation bracket">(</span>
+				<span class="string">`Failed to load configuration: </span><span class="string embedded punctuation special">${</span><span class="string embedded variable token-hoverable" data-hover-content="local 14" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span><span class="string embedded"> </span><span class="string embedded keyword">instanceof</span><span class="string embedded"> </span><span class="string embedded type variable constructor">Error</span><span class="string embedded"> ? </span><span class="string embedded variable token-hoverable" data-hover-content="local 14" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span><span class="string embedded punctuation delimiter">.</span><span class="string embedded property">message</span><span class="string embedded"> : </span><span class="string embedded variable token-hoverable" data-hover-content="local 14" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span><span class="string embedded punctuation bracket punctuation special">}</span><span class="string">`</span><span class="punctuation delimiter">,</span>
+				<span class="variable token-hoverable" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var fullPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">fullPath</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+	<span class="punctuation bracket">}</span></code></pre>
+<div class="token-comment"><p>Simple merge user configuration with default configuration</p>
+</div>
+<pre><code class="language-ts"><span class="keyword">private</span> <span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) mergeConfigs(defaultConfig: CireConfig, userConfig: Partial&amp;lt;CireConfig&amp;gt;): CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Simple merge user configuration with default configuration&lt;/p&gt;
+">mergeConfigs</span><span class="punctuation bracket">(</span>
+		<span class="variable parameter variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(defaultConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) defaultConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">defaultConfig</span>: <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">CireConfig</span><span class="punctuation delimiter">,</span>
+		<span class="variable parameter variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(userConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) userConfig: Partial&amp;lt;CireConfig&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+">userConfig</span>: <span class="type">Partial</span><span class="punctuation bracket operator">&lt;</span><span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">CireConfig</span><span class="punctuation bracket operator">&gt;</span><span class="punctuation delimiter">,</span>
+	<span class="punctuation bracket">)</span>: <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">CireConfig</span> <span class="punctuation bracket">{</span>
+		<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 17" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var resolvedConfig: { input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }; output: { directory: string; baseUrl?: string | undefined; }; lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | ... 1 more ... | undefined; } | undefined; name: string; version: string; description?: string | un...
+&lt;/code&gt;&lt;/pre&gt;
+">resolvedConfig</span> <span class="operator">=</span> <span class="punctuation bracket">{</span>
+			...<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(defaultConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) defaultConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">defaultConfig</span><span class="punctuation delimiter">,</span>
+			...<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(userConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) userConfig: Partial&amp;lt;CireConfig&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+">userConfig</span><span class="punctuation delimiter">,</span>
+			<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/input0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }
+&lt;/code&gt;&lt;/pre&gt;
+">input</span>: <span class="punctuation bracket">{</span>
+				...<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(defaultConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) defaultConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">defaultConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#input." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }
+&lt;/code&gt;&lt;/pre&gt;
+">input</span><span class="punctuation delimiter">,</span>
+				...<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(userConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) userConfig: Partial&amp;lt;CireConfig&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+">userConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#input." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }
+&lt;/code&gt;&lt;/pre&gt;
+">input</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">}</span><span class="punctuation delimiter">,</span>
+			<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/output0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) output: { directory: string; baseUrl?: string | undefined; }
+&lt;/code&gt;&lt;/pre&gt;
+">output</span>: <span class="punctuation bracket">{</span>
+				...<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(defaultConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) defaultConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">defaultConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#output." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) output: { directory: string; baseUrl?: string | undefined; }
+&lt;/code&gt;&lt;/pre&gt;
+">output</span><span class="punctuation delimiter">,</span>
+				...<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(userConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) userConfig: Partial&amp;lt;CireConfig&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+">userConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#output." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) output: { directory: string; baseUrl?: string | undefined; }
+&lt;/code&gt;&lt;/pre&gt;
+">output</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">}</span><span class="punctuation delimiter">,</span>
+			<span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/lsp0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | &amp;quot;scip&amp;quot; | undefined; } | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">lsp</span>: <span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(userConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) userConfig: Partial&amp;lt;CireConfig&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+">userConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#lsp." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | &amp;quot;scip&amp;quot; | undefined; } | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">lsp</span>
+				? <span class="punctuation bracket">{</span>
+						...<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(defaultConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) defaultConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">defaultConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#lsp." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | &amp;quot;scip&amp;quot; | undefined; } | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">lsp</span><span class="punctuation delimiter">,</span>
+						...<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(userConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) userConfig: Partial&amp;lt;CireConfig&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+">userConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#lsp." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | &amp;quot;scip&amp;quot; | undefined; } | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">lsp</span><span class="punctuation delimiter">,</span>
+					<span class="punctuation bracket">}</span>
+				: <span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#mergeConfigs().(defaultConfig)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) defaultConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">defaultConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#lsp." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | &amp;quot;scip&amp;quot; | undefined; } | undefined
+&lt;/code&gt;&lt;/pre&gt;
+">lsp</span><span class="punctuation delimiter">,</span>
+		<span class="punctuation bracket">}</span><span class="punctuation delimiter">;</span>
+
+		<span class="comment">// Resolve paths relative to current working directory</span>
+		<span class="variable token-hoverable" data-hover-content="local 17" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var resolvedConfig: { input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }; output: { directory: string; baseUrl?: string | undefined; }; lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | ... 1 more ... | undefined; } | undefined; name: string; version: string; description?: string | un...
+&lt;/code&gt;&lt;/pre&gt;
+">resolvedConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/input0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }
+&lt;/code&gt;&lt;/pre&gt;
+">input</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#input.typeLiteral0:root." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) root: string
+&lt;/code&gt;&lt;/pre&gt;
+">root</span> <span class="operator">=</span> <span class="variable function">resolve</span><span class="punctuation bracket">(</span>
+			<span class="variable">process</span><span class="punctuation delimiter">.</span><span class="property function method">cwd</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">,</span>
+			<span class="variable token-hoverable" data-hover-content="local 17" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var resolvedConfig: { input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }; output: { directory: string; baseUrl?: string | undefined; }; lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | ... 1 more ... | undefined; } | undefined; name: string; version: string; description?: string | un...
+&lt;/code&gt;&lt;/pre&gt;
+">resolvedConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/input0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }
+&lt;/code&gt;&lt;/pre&gt;
+">input</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#input.typeLiteral0:root." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) root: string
+&lt;/code&gt;&lt;/pre&gt;
+">root</span><span class="punctuation delimiter">,</span>
+		<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="variable token-hoverable" data-hover-content="local 17" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var resolvedConfig: { input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }; output: { directory: string; baseUrl?: string | undefined; }; lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | ... 1 more ... | undefined; } | undefined; name: string; version: string; description?: string | un...
+&lt;/code&gt;&lt;/pre&gt;
+">resolvedConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/output0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) output: { directory: string; baseUrl?: string | undefined; }
+&lt;/code&gt;&lt;/pre&gt;
+">output</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#output.typeLiteral1:directory." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) directory: string
+&lt;/code&gt;&lt;/pre&gt;
+">directory</span> <span class="operator">=</span> <span class="variable function">resolve</span><span class="punctuation bracket">(</span>
+			<span class="variable">process</span><span class="punctuation delimiter">.</span><span class="property function method">cwd</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">,</span>
+			<span class="variable token-hoverable" data-hover-content="local 17" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var resolvedConfig: { input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }; output: { directory: string; baseUrl?: string | undefined; }; lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | ... 1 more ... | undefined; } | undefined; name: string; version: string; description?: string | un...
+&lt;/code&gt;&lt;/pre&gt;
+">resolvedConfig</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/output0:" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) output: { directory: string; baseUrl?: string | undefined; }
+&lt;/code&gt;&lt;/pre&gt;
+">output</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#output.typeLiteral1:directory." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) directory: string
+&lt;/code&gt;&lt;/pre&gt;
+">directory</span><span class="punctuation delimiter">,</span>
+		<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+		<span class="keyword">return</span> <span class="variable token-hoverable" data-hover-content="local 17" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var resolvedConfig: { input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }; output: { directory: string; baseUrl?: string | undefined; }; lsp: { indexPath?: string | undefined; provider?: &amp;quot;lsif&amp;quot; | ... 1 more ... | undefined; } | undefined; name: string; version: string; description?: string | un...
+&lt;/code&gt;&lt;/pre&gt;
+">resolvedConfig</span><span class="punctuation delimiter">;</span>
+	<span class="punctuation bracket">}</span></code></pre>
+<div class="token-comment"><p>Basic configuration validation - TypeScript handles most type checking</p>
+</div>
+<pre><code class="language-ts"><span class="keyword">private</span> <span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) validateConfig(config: CireConfig, configPath: string): void
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Basic configuration validation - TypeScript handles most type checking&lt;/p&gt;
+">validateConfig</span><span class="punctuation bracket">(</span><span class="variable parameter variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig().(config)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) config: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">config</span>: <span class="type token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">CireConfig</span><span class="punctuation delimiter">,</span> <span class="variable parameter variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span>: <span class="type builtin">string</span><span class="punctuation bracket">)</span>: <span class="type builtin keyword">void</span> <span class="punctuation bracket">{</span>
+		<span class="comment">// Only check for basic existence since TypeScript handles type safety</span>
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig().(config)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) config: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">config</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">throw</span> <span class="keyword">new</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/ConfigError#`&lt;constructor&gt;`()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;constructor(message: string, filePath?: string | undefined): ConfigError
+&lt;/code&gt;&lt;/pre&gt;
+">ConfigError</span><span class="punctuation bracket">(</span>
+				<span class="string">&quot;Configuration is empty or invalid&quot;</span><span class="punctuation delimiter">,</span>
+				<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="comment">// Basic sanity checks for critical fields</span>
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig().(config)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) config: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">config</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#name." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) name: string
+&lt;/code&gt;&lt;/pre&gt;
+">name</span><span class="punctuation delimiter">?.</span><span class="property function method">trim</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">throw</span> <span class="keyword">new</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/ConfigError#`&lt;constructor&gt;`()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;constructor(message: string, filePath?: string | undefined): ConfigError
+&lt;/code&gt;&lt;/pre&gt;
+">ConfigError</span><span class="punctuation bracket">(</span>
+				<span class="string">&#039;Configuration must have a non-empty &quot;name&quot; field&#039;</span><span class="punctuation delimiter">,</span>
+				<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig().(config)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) config: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">config</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#input." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) input: { root: string; include: string[]; exclude?: string[] | undefined; language: string; }
+&lt;/code&gt;&lt;/pre&gt;
+">input</span><span class="punctuation delimiter">?.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#input.typeLiteral0:root." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) root: string
+&lt;/code&gt;&lt;/pre&gt;
+">root</span><span class="punctuation delimiter">?.</span><span class="property function method">trim</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">throw</span> <span class="keyword">new</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/ConfigError#`&lt;constructor&gt;`()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;constructor(message: string, filePath?: string | undefined): ConfigError
+&lt;/code&gt;&lt;/pre&gt;
+">ConfigError</span><span class="punctuation bracket">(</span>
+				<span class="string">&#039;Configuration must have a non-empty &quot;input.root&quot; field&#039;</span><span class="punctuation delimiter">,</span>
+				<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+		<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="operator">!</span><span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig().(config)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) config: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">config</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#output." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) output: { directory: string; baseUrl?: string | undefined; }
+&lt;/code&gt;&lt;/pre&gt;
+">output</span><span class="punctuation delimiter">?.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/CireConfig#output.typeLiteral1:directory." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) directory: string
+&lt;/code&gt;&lt;/pre&gt;
+">directory</span><span class="punctuation delimiter">?.</span><span class="property function method">trim</span><span class="punctuation bracket">(</span><span class="punctuation bracket">)</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">throw</span> <span class="keyword">new</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/ConfigError#`&lt;constructor&gt;`()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;constructor(message: string, filePath?: string | undefined): ConfigError
+&lt;/code&gt;&lt;/pre&gt;
+">ConfigError</span><span class="punctuation bracket">(</span>
+				<span class="string">&#039;Configuration must have a non-empty &quot;output.directory&quot; field&#039;</span><span class="punctuation delimiter">,</span>
+				<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#validateConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+	<span class="punctuation bracket">}</span></code></pre>
+<div class="token-comment"><p>Create a sample .cire configuration file</p>
+</div>
+<pre><code class="language-ts"><span class="property function method token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#createSampleConfig()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) createSampleConfig(configPath: string): void
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Create a sample .cire configuration file&lt;/p&gt;
+">createSampleConfig</span><span class="punctuation bracket">(</span><span class="variable parameter variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#createSampleConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span>: <span class="type builtin">string</span><span class="punctuation bracket">)</span>: <span class="type builtin keyword">void</span> <span class="punctuation bracket">{</span>
+		<span class="keyword">const</span> <span class="variable token-hoverable" data-hover-content="local 20" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var configContent: string
+&lt;/code&gt;&lt;/pre&gt;
+">configContent</span> <span class="operator">=</span> <span class="type variable constructor constant">JSON</span><span class="punctuation delimiter">.</span><span class="property function method">stringify</span><span class="punctuation bracket">(</span><span class="variable builtin">this</span><span class="punctuation delimiter">.</span><span class="property token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#defaultConfig." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(property) defaultConfig: CireConfig
+&lt;/code&gt;&lt;/pre&gt;
+">defaultConfig</span><span class="punctuation delimiter">,</span> <span class="constant builtin">null</span><span class="punctuation delimiter">,</span> <span class="number">2</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+
+		<span class="keyword">try</span> <span class="punctuation bracket">{</span>
+			<span class="variable function function builtin">require</span><span class="punctuation bracket">(</span><span class="string">&quot;node:fs&quot;</span><span class="punctuation bracket">)</span><span class="punctuation delimiter">.</span><span class="property function method">writeFileSync</span><span class="punctuation bracket">(</span>
+				<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#createSampleConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span><span class="punctuation delimiter">,</span>
+				<span class="variable token-hoverable" data-hover-content="local 20" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var configContent: string
+&lt;/code&gt;&lt;/pre&gt;
+">configContent</span><span class="punctuation delimiter">,</span>
+				<span class="string">&quot;utf-8&quot;</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span> <span class="keyword">catch</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable" data-hover-content="local 23" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">throw</span> <span class="keyword">new</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/types/`index.ts`/ConfigError#`&lt;constructor&gt;`()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;constructor(message: string, filePath?: string | undefined): ConfigError
+&lt;/code&gt;&lt;/pre&gt;
+">ConfigError</span><span class="punctuation bracket">(</span>
+				<span class="string">`Failed to create sample configuration: </span><span class="string embedded punctuation special">${</span><span class="string embedded variable token-hoverable" data-hover-content="local 23" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span><span class="string embedded"> </span><span class="string embedded keyword">instanceof</span><span class="string embedded"> </span><span class="string embedded type variable constructor">Error</span><span class="string embedded"> ? </span><span class="string embedded variable token-hoverable" data-hover-content="local 23" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span><span class="string embedded punctuation delimiter">.</span><span class="string embedded property">message</span><span class="string embedded"> : </span><span class="string embedded variable token-hoverable" data-hover-content="local 23" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var error: unknown
+&lt;/code&gt;&lt;/pre&gt;
+">error</span><span class="string embedded punctuation bracket punctuation special">}</span><span class="string">`</span><span class="punctuation delimiter">,</span>
+				<span class="variable token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/config/`config-loader.ts`/ConfigLoader#createSampleConfig().(configPath)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) configPath: string
+&lt;/code&gt;&lt;/pre&gt;
+">configPath</span><span class="punctuation delimiter">,</span>
+			<span class="punctuation bracket">)</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+	<span class="punctuation bracket">}</span>
+<span class="punctuation bracket">}</span></code></pre></div>
+    </div>
+
+    <div class="hover-tooltip" id="tooltip">
+        <div class="symbol-name" id="tooltip-symbol"></div>
+        <div class="documentation" id="tooltip-docs"></div>
+    </div>
+
+    <script>
+        const tooltip = document.getElementById('tooltip');
+        const tooltipSymbol = document.getElementById('tooltip-symbol');
+        const tooltipDocs = document.getElementById('tooltip-docs');
+        let hideTimeout;
+
+        function parseMarkdown(text) {
+            if (!text) return '';
+            // Markdown is now preprocessed on server-side using marked
+            // Just return the pre-rendered HTML directly
+            return text;
+        }
+
+        function showTooltip(element, content, documentation) {
+            clearTimeout(hideTimeout);
+
+            tooltipSymbol.textContent = content;
+            tooltipDocs.innerHTML = parseMarkdown(documentation || '');
+
+            const rect = element.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+
+            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            let top = rect.top - tooltipRect.height - 10;
+
+            // Keep tooltip within viewport
+            if (left < 10) left = 10;
+            if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10;
+            }
+            if (top < 10) {
+                top = rect.bottom + 10;
+            }
+
+            tooltip.style.left = left + window.scrollX + 'px';
+            tooltip.style.top = top + window.scrollY + 'px';
+
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            hideTimeout = setTimeout(() => {
+                tooltip.classList.remove('visible');
+            }, 100);
+        }
+
+        // Add hover listeners to all hoverable tokens
+        document.addEventListener('DOMContentLoaded', () => {
+            const hoverableElements = document.querySelectorAll('[data-hover-content]');
+
+            hoverableElements.forEach(element => {
+                const content = element.getAttribute('data-hover-content');
+                const documentation = element.getAttribute('data-hover-documentation');
+
+                element.addEventListener('mouseenter', (e) => {
+                    showTooltip(e.target, content, documentation);
+                });
+
+                element.addEventListener('mouseleave', hideTooltip);
+            });
+
+            // Hide tooltip when clicking elsewhere
+            document.addEventListener('click', hideTooltip);
+        });
+    </script>
+</body>
+</html>

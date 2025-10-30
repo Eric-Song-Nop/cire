@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { glob } from "glob";
 import type { CireConfig, FileIR } from "../types";
 import { logger } from "../utils/logger";
+import { NavigationGenerator } from "../utils/navigation-generator";
 import { type WorkflowConfig, WorkflowManager } from "./WorkflowManager";
 
 export interface BuildStats {
@@ -63,6 +64,9 @@ export class ProjectBuilder {
 
 			// 6. Copy asset files
 			await this.copyAssets(outputDir);
+
+			// 7. Generate navigation index page
+			await this.generateNavigationIndex(sourceFiles, outputDir, config);
 
 			const processingTime = Date.now() - startTime;
 
@@ -249,6 +253,38 @@ export class ProjectBuilder {
 			}
 		} else {
 			console.warn(`!  CSS file not found: ${cssSourcePath}`);
+		}
+	}
+
+	/**
+	 * Generate navigation index page
+	 */
+	private async generateNavigationIndex(
+		sourceFiles: string[],
+		outputDir: string,
+		config: CireConfig,
+	): Promise<void> {
+		try {
+			console.log("📋 Generating navigation index page...");
+
+			// Convert absolute paths to relative paths for navigation display
+			const relativeFiles = sourceFiles.map((file) =>
+				path.relative(config.input.root, file),
+			);
+
+			const navigationGenerator = new NavigationGenerator();
+			const navigationHTML = navigationGenerator.generateNavigationPage(
+				relativeFiles,
+				config,
+			);
+			await navigationGenerator.saveNavigationPage(
+				navigationHTML,
+				outputDir,
+			);
+
+			console.log("✅ Navigation index page generated successfully");
+		} catch (error) {
+			console.warn("⚠️  Failed to generate navigation index:", error);
 		}
 	}
 }

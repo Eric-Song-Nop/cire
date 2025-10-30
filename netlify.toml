@@ -7,7 +7,7 @@
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/cireIndex.html"
   status = 200
 
 [context.deploy-preview]
