@@ -8,8 +8,11 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import chalk from "chalk";
 import { Command } from "commander";
+import { ConfigLoader } from "./config/config-loader";
 import { ProjectBuilder } from "./core/ProjectBuilder";
 import { type WorkflowConfig, WorkflowManager } from "./core/WorkflowManager";
+import type { CireConfig } from "./types";
+import { logger } from "./utils/logger";
 
 const program = new Command();
 
@@ -46,7 +49,11 @@ program
 			// Smart mode detection
 			if (options.config) {
 				// Project mode explicitly requested
-				await runProjectMode(options);
+				const config = await new ConfigLoader().loadConfig(
+					options.config,
+				);
+				logger.setLevel(config.logLevel);
+				await runProjectMode(config);
 				return;
 			}
 
@@ -70,22 +77,16 @@ program
 /**
  * Run in project mode using ProjectBuilder
  */
-async function runProjectMode(options: any): Promise<void> {
+async function runProjectMode(config: CireConfig): Promise<void> {
 	console.log(chalk.blue.bold("🔨 Cire Project Mode Started"));
 
-	const builder = new ProjectBuilder();
+	const builder = new ProjectBuilder(config);
 
-	if (options.verbose) {
-		console.log(chalk.gray(`Using config: ${options.config}`));
+	if (config.logLevel === "debug") {
+		console.log(chalk.gray(`Using config: ${config}`));
 	}
 
-	const buildOptions = {
-		configPath: options.config,
-		outputDir: options.output,
-		verbose: options.verbose,
-	};
-
-	const stats = await builder.buildProject(buildOptions);
+	const stats = await builder.buildProject();
 
 	// Show results
 	console.log();
@@ -94,18 +95,18 @@ async function runProjectMode(options: any): Promise<void> {
 
 	if (stats.failedFiles > 0) {
 		console.log(
-			chalk.yellow(`⚠️  ${stats.failedFiles} files failed to process`),
+			chalk.yellow(`!  ${stats.failedFiles} files failed to process`),
 		);
 	}
 
 	console.log(
 		chalk.cyan(
-			`⏱️  Processing time: ${(stats.processingTime / 1000).toFixed(2)}s`,
+			`⏱  Processing time: ${(stats.processingTime / 1000).toFixed(2)}s`,
 		),
 	);
 	console.log(chalk.cyan(`📁 Total files found: ${stats.totalFiles}`));
 
-	const outputDir = options.output || "dist";
+	const outputDir = config.output.directory;
 	console.log();
 	console.log(chalk.blue.bold("📂 Output directory:"));
 	console.log(chalk.cyan(`   ${path.resolve(outputDir)}`));
@@ -236,9 +237,11 @@ async function autoDetectAndRun(options: any): Promise<void> {
 		if (fs.existsSync(configFile)) {
 			if (options.verbose) {
 				console.log(chalk.gray(`🔍 Found config file: ${configFile}`));
-				console.log(chalk.blue("🏗️  Switching to project mode..."));
+				console.log(chalk.blue("🏗  Switching to project mode..."));
 			}
-			await runProjectMode({ ...options, config: configFile });
+			const config = await new ConfigLoader().loadConfig(configFile);
+			logger.setLevel(config.logLevel);
+			await runProjectMode(config);
 			return;
 		}
 	}

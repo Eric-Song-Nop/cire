@@ -24,6 +24,7 @@ export class ConfigLoader {
 			directory: "./dist",
 			baseUrl: "/",
 		},
+		logLevel: "error",
 		lsp: {
 			provider: "scip",
 		},

@@ -49,12 +49,12 @@ export class TSHighLighter implements Analyzer {
 		const sourceCode = fs.readFileSync(sourceCodePath).toString();
 		const tree = this.parser.parse(sourceCode);
 
-		// 从模板文件读取查询语句
+		// Read query statements from template file
 		const queryPath = `templates/queries/${this.lang}/highlight.scm`;
 		const queryContent = fs.readFileSync(queryPath).toString();
 		const querier = new Parser.Query(this.parserLang, queryContent);
 
-		// 执行查询并捕获结果
+		// Execute query and capture results
 		const captures = querier.captures(tree.rootNode);
 		const tokenInfos: TokenInfo[] = captures.map((capture) => ({
 			meta: [

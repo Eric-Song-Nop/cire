@@ -1,17 +1,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { glob } from "glob";
-import { ConfigLoader } from "../config/config-loader";
 import type { CireConfig, FileIR } from "../types";
+import { logger } from "../utils/logger";
 import { type WorkflowConfig, WorkflowManager } from "./WorkflowManager";
-
-export type ProjectConfig = CireConfig;
-
-export interface BuildOptions {
-	configPath?: string;
-	outputDir?: string;
-	verbose?: boolean;
-}
 
 export interface BuildStats {
 	totalFiles: number;
@@ -21,28 +13,28 @@ export interface BuildStats {
 }
 
 /**
- * ProjectBuilder - 处理项目级别的批量构建
- * 负责扫描源代码文件、批量处理、创建输出目录结构等
+ * ProjectBuilder - Handles project-level batch building.
+ * Responsible for scanning source files, batch processing, and creating output directory structure.
  */
 export class ProjectBuilder {
-	private configLoader: ConfigLoader;
 	private workflowManager: WorkflowManager | null = null;
+	private cireConfig: CireConfig;
 
-	constructor() {
-		this.configLoader = new ConfigLoader();
+	constructor(config: CireConfig) {
+		this.cireConfig = config;
 	}
 
 	/**
 	 * 构建整个项目
 	 */
-	async buildProject(options: BuildOptions): Promise<BuildStats> {
+	async buildProject(): Promise<BuildStats> {
 		const startTime = Date.now();
 
 		try {
 			// 1. 加载配置
-			const config = await this.loadProjectConfig(options.configPath);
+			const config = this.cireConfig;
 
-			if (options.verbose) {
+			if (config.logLevel === "info") {
 				console.log(`📁 Loaded config for: ${config.name}`);
 				console.log(`📂 Input root: ${config.input.root}`);
 				console.log(`📤 Output directory: ${config.output.directory}`);
@@ -51,12 +43,12 @@ export class ProjectBuilder {
 			// 2. 扫描源代码文件
 			const sourceFiles = await this.scanSourceFiles(config);
 
-			if (options.verbose) {
+			if (config.logLevel === "info") {
 				console.log(`🔍 Found ${sourceFiles.length} source files`);
 			}
 
 			// 3. 创建输出目录
-			const outputDir = options.outputDir || config.output.directory;
+			const outputDir = config.output.directory;
 			await this.ensureOutputDirectory(outputDir);
 
 			// 4. 初始化 WorkflowManager
@@ -67,11 +59,10 @@ export class ProjectBuilder {
 				sourceFiles,
 				outputDir,
 				config,
-				options.verbose,
 			);
 
 			// 6. 复制资源文件
-			await this.copyAssets(outputDir, options.verbose);
+			await this.copyAssets(outputDir);
 
 			const processingTime = Date.now() - startTime;
 
@@ -85,18 +76,9 @@ export class ProjectBuilder {
 	}
 
 	/**
-	 * 加载项目配置
-	 */
-	private async loadProjectConfig(
-		configPath?: string,
-	): Promise<ProjectConfig> {
-		return await this.configLoader.loadConfig(configPath);
-	}
-
-	/**
 	 * 扫描源代码文件
 	 */
-	private async scanSourceFiles(config: ProjectConfig): Promise<string[]> {
+	private async scanSourceFiles(config: CireConfig): Promise<string[]> {
 		const { root, include, exclude } = config.input;
 		const sourceFiles: string[] = [];
 
@@ -107,7 +89,7 @@ export class ProjectBuilder {
 		for (const pattern of include) {
 			const fullPattern = path.join(absoluteRoot, pattern);
 
-			if (this.configLoader.verbose) {
+			if (this.cireConfig.description) {
 				console.log(`🔍 Scanning pattern: ${fullPattern}`);
 			}
 
@@ -140,7 +122,7 @@ export class ProjectBuilder {
 	/**
 	 * 创建 WorkflowManager
 	 */
-	private createWorkflowManager(config: ProjectConfig): WorkflowManager {
+	private createWorkflowManager(config: CireConfig): WorkflowManager {
 		const workflowConfig: WorkflowConfig = {
 			syntaxHighlighting: true,
 			hoverDocumentation: !!config.lsp?.indexPath,
@@ -158,7 +140,7 @@ export class ProjectBuilder {
 	private async processFiles(
 		sourceFiles: string[],
 		outputDir: string,
-		config: ProjectConfig,
+		config: CireConfig,
 		verbose: boolean = false,
 	): Promise<{
 		processedFiles: number;
@@ -172,12 +154,7 @@ export class ProjectBuilder {
 
 		for (const sourceFile of sourceFiles) {
 			try {
-				await this.processSingleFile(
-					sourceFile,
-					outputDir,
-					config,
-					verbose,
-				);
+				await this.processSingleFile(sourceFile, outputDir, config);
 				processedFiles++;
 
 				if (verbose) {
@@ -204,7 +181,7 @@ export class ProjectBuilder {
 
 		// 清除进度行
 		if (!verbose) {
-			process.stdout.write("\r" + " ".repeat(50) + "\r");
+			process.stdout.write(`\r${" ".repeat(50)}\r`);
 		}
 
 		console.log(
@@ -224,8 +201,7 @@ export class ProjectBuilder {
 	private async processSingleFile(
 		sourceFile: string,
 		outputDir: string,
-		config: ProjectConfig,
-		verbose: boolean = false,
+		config: CireConfig,
 	): Promise<void> {
 		if (!this.workflowManager) {
 			throw new Error("WorkflowManager not initialized");
