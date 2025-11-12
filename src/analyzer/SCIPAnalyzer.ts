@@ -115,7 +115,10 @@ export class SCIPAnalyzer implements Analyzer {
 				});
 			}
 
-			if (occurrence.symbol in symbolDefSpan) {
+			// Only add definition metadata if this occurrence IS the definition
+			// This ensures "go to definition" jumps to the actual definition, not the first occurrence
+			if (occurrence.symbol in symbolDefSpan && 
+			    (occurrence.symbol_roles & scip.SymbolRole.Definition) !== 0) {
 				meta.push({
 					type: "definition",
 					filePath: fileIR.relativePath,
