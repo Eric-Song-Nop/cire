@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>index.ts - Cire Documentation</title>
+    <title>index.ts - Cire</title>
     <link rel="stylesheet" href="../default.css">
 </head>
 <body>
@@ -11,39 +11,10 @@
         <div class="markdown-content"><div class="token-comment"><p>Token Info Passes</p>
 <p>Collection of passes for processing TokenInfo arrays</p>
 </div>
-<pre><code class="language-ts"><span class="keyword keyword">export</span> <span class="punctuation bracket">{</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`CommentMergePass.ts`/CommentMergePass#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;class CommentMergePass
-&lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;CommentMergePass prioritizes and merges comment tokens.&lt;/p&gt;
-&lt;p&gt;This pass performs two main operations:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;Prioritizes comment meta over other meta types (keeps only comment when present)&lt;/li&gt;
-&lt;li&gt;Merges adjacent comment tokens into single comment tokens&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;Note: Tokens should already be sorted by SortTokenPass and processed by MergeTokenPass
-before this pass to ensure proper ordering and no overlapping spans.&lt;/p&gt;
-">CommentMergePass</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`CommentMergePass.ts`/" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;module &amp;quot;CommentMergePass.ts&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-">&quot;./CommentMergePass&quot;</span><span class="punctuation delimiter">;</span>
-<span class="keyword keyword">export</span> <span class="punctuation bracket">{</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`MergeTokenPass.ts`/MergeTokenPass#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;class MergeTokenPass
-&lt;/code&gt;&lt;/pre&gt;
-">MergeTokenPass</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`MergeTokenPass.ts`/" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;module &amp;quot;MergeTokenPass.ts&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-">&quot;./MergeTokenPass&quot;</span><span class="punctuation delimiter">;</span>
-<span class="keyword keyword">export</span> <span class="punctuation bracket">{</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`SortTokenPass.ts`/SortTokenPass#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;class SortTokenPass
-&lt;/code&gt;&lt;/pre&gt;
-">SortTokenPass</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`SortTokenPass.ts`/" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;module &amp;quot;SortTokenPass.ts&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-">&quot;./SortTokenPass&quot;</span><span class="punctuation delimiter">;</span>
-<span class="keyword keyword">export</span> <span class="punctuation bracket">{</span> <span class="type variable constructor token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`TokenInfoPass.ts`/TokenInfoPass#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface TokenInfoPass
-&lt;/code&gt;&lt;/pre&gt;
-">TokenInfoPass</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string token-hoverable" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`TokenInfoPass.ts`/" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;module &amp;quot;TokenInfoPass.ts&amp;quot;
-&lt;/code&gt;&lt;/pre&gt;
-">&quot;./TokenInfoPass&quot;</span><span class="punctuation delimiter">;</span></code></pre></div>
-    </div>
-
-    <div class="hover-tooltip" id="tooltip">
-        <div class="symbol-name" id="tooltip-symbol"></div>
-        <div class="documentation" id="tooltip-docs"></div>
+<pre><code class="language-ts"><span class="keyword keyword">export</span> <span class="punctuation bracket">{</span> <span class="type variable constructor">CommentMergePass</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string">&quot;./CommentMergePass&quot;</span><span class="punctuation delimiter">;</span>
+<span class="keyword keyword">export</span> <span class="punctuation bracket">{</span> <span class="type variable constructor">MergeTokenPass</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string">&quot;./MergeTokenPass&quot;</span><span class="punctuation delimiter">;</span>
+<span class="keyword keyword">export</span> <span class="punctuation bracket">{</span> <span class="type variable constructor">SortTokenPass</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string">&quot;./SortTokenPass&quot;</span><span class="punctuation delimiter">;</span>
+<span class="keyword keyword">export</span> <span class="punctuation bracket">{</span> <span class="type variable constructor">TokenInfoPass</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string">&quot;./TokenInfoPass&quot;</span><span class="punctuation delimiter">;</span></code></pre></div>
     </div>
 
     <script>
@@ -51,65 +22,161 @@ before this pass to ensure proper ordering and no overlapping spans.&lt;/p&gt;
         const tooltipSymbol = document.getElementById('tooltip-symbol');
         const tooltipDocs = document.getElementById('tooltip-docs');
         let hideTimeout;
-
+    
         function parseMarkdown(text) {
             if (!text) return '';
             // Markdown is now preprocessed on server-side using marked
             // Just return the pre-rendered HTML directly
             return text;
         }
-
+    
         function showTooltip(element, content, documentation) {
-            clearTimeout(hideTimeout);
-
-            tooltipSymbol.textContent = content;
-            tooltipDocs.innerHTML = parseMarkdown(documentation || '');
-
-            const rect = element.getBoundingClientRect();
-            const tooltipRect = tooltip.getBoundingClientRect();
-
-            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
-            let top = rect.top - tooltipRect.height - 10;
-
-            // Keep tooltip within viewport
-            if (left < 10) left = 10;
-            if (left + tooltipRect.width > window.innerWidth - 10) {
-                left = window.innerWidth - tooltipRect.width - 10;
-            }
-            if (top < 10) {
-                top = rect.bottom + 10;
-            }
-
-            tooltip.style.left = left + window.scrollX + 'px';
-            tooltip.style.top = top + window.scrollY + 'px';
-
-            tooltip.classList.add('visible');
         }
-
+    
         function hideTooltip() {
-            hideTimeout = setTimeout(() => {
-                tooltip.classList.remove('visible');
-            }, 100);
         }
-
-        // Add hover listeners to all hoverable tokens
-        document.addEventListener('DOMContentLoaded', () => {
-            const hoverableElements = document.querySelectorAll('[data-hover-content]');
-
-            hoverableElements.forEach(element => {
-                const content = element.getAttribute('data-hover-content');
-                const documentation = element.getAttribute('data-hover-documentation');
-
-                element.addEventListener('mouseenter', (e) => {
-                    showTooltip(e.target, content, documentation);
+    
+        // Add hover and click listeners to all interactive tokens
+        document.addEventListener('DOMContentLoaded', function() {
+    
+            const clickableElements = document.querySelectorAll('[data-definition-file]');
+    
+            // Setup click-to-definition functionality
+            clickableElements.forEach(function(element) {
+                element.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+    
+                    const definitionFile = element.getAttribute('data-definition-file');
+                    const definitionLine = parseInt(element.getAttribute('data-definition-line') || '0');
+                    const definitionColumn = parseInt(element.getAttribute('data-definition-column') || '0');
+    
+                    if (definitionFile && definitionLine >= 0) {
+                        jumpToDefinition(definitionFile, definitionLine, definitionColumn);
+                    }
                 });
-
-                element.addEventListener('mouseleave', hideTooltip);
             });
-
+    
             // Hide tooltip when clicking elsewhere
             document.addEventListener('click', hideTooltip);
         });
-    </script>
-</body>
+    
+        function jumpToDefinition(filePath, line, column) {
+            // For now, we assume definition is in the same file
+            // TODO: Implement proper cross-file navigation based on project structure
+            console.log('Jumping to definition in:', filePath, 'line:', line, 'column:', column);
+    
+            // Try to find the element with definition data attributes that matches
+            var allElements = document.querySelectorAll('[data-definition-line]');
+            var bestMatch = null;
+            var bestDistance = Infinity;
+    
+            for (var i = 0; i < allElements.length; i++) {
+                var element = allElements[i];
+                var elementLine = parseInt(element.getAttribute('data-definition-line') || '0');
+                var elementColumn = parseInt(element.getAttribute('data-definition-column') || '0');
+                var elementFile = element.getAttribute('data-definition-file');
+    
+                // Check if this is the definition we're looking for
+                if (elementFile === filePath && elementLine === line) {
+                    // Simple distance calculation for column
+                    var columnDistance = Math.abs(elementColumn - column);
+                    if (columnDistance < bestDistance) {
+                        bestDistance = columnDistance;
+                        bestMatch = element;
+                    }
+                }
+            }
+    
+            if (bestMatch) {
+                // Found the exact definition element
+                bestMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                highlightDefinition(bestMatch);
+                return;
+            }
+    
+            // Fallback: try to find any element on the target line
+            var codeElements = document.querySelectorAll('pre code');
+            var currentLine = 0;
+    
+            for (var j = 0; j < codeElements.length; j++) {
+                var codeElement = codeElements[j];
+                var lines = codeElement.textContent.split('\\n');
+    
+                if (currentLine + lines.length > line) {
+                    // Found the code block containing the target line
+                    var relativeLine = line - currentLine;
+    
+                    // Find spans in this code block
+                    var spans = codeElement.querySelectorAll('span');
+                    for (var k = 0; k < spans.length; k++) {
+                        var span = spans[k];
+                        // Simple heuristic: check if span has any definition-related data
+                        if (span.getAttribute('data-definition-file') === filePath) {
+                            span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            highlightDefinition(span);
+                            return;
+                        }
+                    }
+    
+                    // If no specific span found, scroll to the code block
+                    codeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    highlightDefinition(codeElement);
+                    return;
+                }
+    
+                currentLine += lines.length;
+            }
+    
+            showNotification('Definition not found', 'warning');
+        }
+    
+        function highlightDefinition(element) {
+            // Check if element is valid
+            if (!element || !element.classList) {
+                console.warn('Invalid element for highlight:', element);
+                return;
+            }
+    
+            // Remove existing highlights
+            document.querySelectorAll('.definition-highlight').forEach(function(el) {
+                el.classList.remove('definition-highlight');
+            });
+    
+            // Add highlight class
+            element.classList.add('definition-highlight');
+    
+            // Remove highlight after 3 seconds
+            setTimeout(function() {
+                if (element && element.classList) {
+                    element.classList.remove('definition-highlight');
+                }
+            }, 3000);
+        }
+    
+        function showNotification(message, type) {
+            type = type || 'info';
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = 'notification notification-' + type;
+            notification.textContent = message;
+    
+            document.body.appendChild(notification);
+    
+            // Animate in
+            setTimeout(function() {
+                notification.classList.add('notification-show');
+            }, 10);
+    
+            // Remove after 4 seconds
+            setTimeout(function() {
+                notification.classList.remove('notification-show');
+                setTimeout(function() {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+    </script></body>
 </html>

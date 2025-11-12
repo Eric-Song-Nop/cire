@@ -3,28 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TokenInfoPass.ts - Cire</title>
+    <title>MultilineTokenPass.ts - Cire</title>
     <link rel="stylesheet" href="../default.css">
 </head>
 <body>
     <div class="container">
-        <div class="markdown-content"><div class="token-comment"><p>TokenInfo Pass Interface</p>
-<p>A pass processes an array of TokenInfo objects and returns a new array
-This allows for modular processing of token information</p>
+        <div class="markdown-content"><div class="token-comment"><h1>Multiline Token Pass</h1>
+<p>We split token that span multiple lines into multiple tokens
+where each token are ensured to be in the same line.</p>
 </div>
 <pre><code class="language-ts"><span class="keyword">import</span> <span class="keyword">type</span> <span class="punctuation bracket">{</span> <span class="type variable constructor">TokenInfo</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string">&quot;../types&quot;</span><span class="punctuation delimiter">;</span>
+<span class="keyword">import</span> <span class="keyword">type</span> <span class="punctuation bracket">{</span> <span class="type variable constructor">TokenInfoPass</span> <span class="punctuation bracket">}</span> <span class="keyword">from</span> <span class="string">&quot;./TokenInfoPass&quot;</span><span class="punctuation delimiter">;</span>
 
-<span class="keyword keyword">export</span> <span class="keyword">interface</span> <span class="type token-hoverable token-clickable token-definition" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`TokenInfoPass.ts`/TokenInfoPass#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;interface TokenInfoPass
+<span class="keyword keyword">export</span> <span class="keyword">class</span> <span class="type token-hoverable token-clickable token-definition" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`MultilineTokenPass.ts`/MultilineTokenPass#" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;class MultilineTokenPass
 &lt;/code&gt;&lt;/pre&gt;
-" data-definition-file="passes/TokenInfoPass.ts" data-definition-line="9" data-definition-column="17">TokenInfoPass</span> <span class="punctuation bracket">{</span></code></pre>
-<div class="token-comment"><p>Process an array of tokens and return the processed array</p>
-</div>
-<pre><code class="language-ts"><span class="property token-hoverable token-clickable token-definition" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`TokenInfoPass.ts`/TokenInfoPass#process()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) process(tokens: TokenInfo[]) =&amp;gt; TokenInfo[]
+" data-definition-file="passes/MultilineTokenPass.ts" data-definition-line="10" data-definition-column="13">MultilineTokenPass</span> <span class="keyword">implements</span> <span class="type">TokenInfoPass</span> <span class="punctuation bracket">{</span>
+	<span class="property function method token-hoverable token-clickable token-definition" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`MultilineTokenPass.ts`/MultilineTokenPass#process()." data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(method) process(tokens: TokenInfo[]): TokenInfo[]
 &lt;/code&gt;&lt;/pre&gt;
 &lt;p&gt;Process an array of tokens and return the processed array&lt;/p&gt;
-" data-definition-file="passes/TokenInfoPass.ts" data-definition-line="13" data-definition-column="1">process</span><span class="punctuation bracket">(</span><span class="variable parameter variable token-hoverable token-clickable token-definition" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`TokenInfoPass.ts`/TokenInfoPass#process().(tokens)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) tokens: TokenInfo[]
+" data-definition-file="passes/MultilineTokenPass.ts" data-definition-line="11" data-definition-column="1">process</span><span class="punctuation bracket">(</span><span class="variable parameter variable token-hoverable token-clickable token-definition" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`MultilineTokenPass.ts`/MultilineTokenPass#process().(tokens)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) tokens: TokenInfo[]
 &lt;/code&gt;&lt;/pre&gt;
-" data-definition-file="passes/TokenInfoPass.ts" data-definition-line="13" data-definition-column="9">tokens</span>: <span class="type">TokenInfo</span><span class="punctuation bracket">[</span><span class="punctuation bracket">]</span><span class="punctuation bracket">)</span>: <span class="type">TokenInfo</span><span class="punctuation bracket">[</span><span class="punctuation bracket">]</span><span class="punctuation delimiter">;</span>
+" data-definition-file="passes/MultilineTokenPass.ts" data-definition-line="11" data-definition-column="9">tokens</span>: <span class="type">TokenInfo</span><span class="punctuation bracket">[</span><span class="punctuation bracket">]</span><span class="punctuation bracket">)</span>: <span class="type">TokenInfo</span><span class="punctuation bracket">[</span><span class="punctuation bracket">]</span> <span class="punctuation bracket">{</span>
+		<span class="keyword">for</span> <span class="punctuation bracket">(</span><span class="keyword">const</span> <span class="variable token-hoverable token-clickable token-definition" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var token: TokenInfo
+&lt;/code&gt;&lt;/pre&gt;
+" data-definition-file="passes/MultilineTokenPass.ts" data-definition-line="12" data-definition-column="13">token</span> <span class="keyword">of</span> <span class="variable token-hoverable token-clickable token-definition" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`MultilineTokenPass.ts`/MultilineTokenPass#process().(tokens)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) tokens: TokenInfo[]
+&lt;/code&gt;&lt;/pre&gt;
+" data-definition-file="passes/MultilineTokenPass.ts" data-definition-line="11" data-definition-column="9">tokens</span><span class="punctuation bracket">)</span> <span class="punctuation bracket">{</span>
+			<span class="keyword">if</span> <span class="punctuation bracket">(</span><span class="variable token-hoverable token-clickable token-definition" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var token: TokenInfo
+&lt;/code&gt;&lt;/pre&gt;
+" data-definition-file="passes/MultilineTokenPass.ts" data-definition-line="12" data-definition-column="13">token</span><span class="punctuation delimiter">.</span><span class="property">span</span><span class="punctuation delimiter">.</span><span class="property">start</span><span class="punctuation delimiter">.</span><span class="property">line</span> <span class="operator">===</span> <span class="variable token-hoverable token-clickable token-definition" data-hover-content="local 2" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var token: TokenInfo
+&lt;/code&gt;&lt;/pre&gt;
+" data-definition-file="passes/MultilineTokenPass.ts" data-definition-line="12" data-definition-column="13">token</span><span class="punctuation delimiter">.</span><span class="property">span</span><span class="punctuation delimiter">.</span><span class="property">end</span><span class="punctuation delimiter">.</span><span class="property">line</span><span class="punctuation bracket">)</span> <span class="keyword">continue</span><span class="punctuation delimiter">;</span>
+		<span class="punctuation bracket">}</span>
+
+        <span class="comment">// Create new tokens</span>
+        <span class="keyword">const</span> <span class="variable token-hoverable token-clickable token-definition" data-hover-content="local 5" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;var splitedTokens: TokenInfo[]
+&lt;/code&gt;&lt;/pre&gt;
+" data-definition-file="passes/MultilineTokenPass.ts" data-definition-line="17" data-definition-column="14">splitedTokens</span>: <span class="type">TokenInfo</span><span class="punctuation bracket">[</span><span class="punctuation bracket">]</span> <span class="operator">=</span> <span class="punctuation bracket">[</span><span class="punctuation bracket">]</span><span class="punctuation delimiter">;</span>
+
+        <span class="comment">// Replace token with new tokens</span>
+		<span class="keyword">return</span> <span class="variable token-hoverable token-clickable token-definition" data-hover-content="scip-typescript npm cire 0.1.0 src/passes/`MultilineTokenPass.ts`/MultilineTokenPass#process().(tokens)" data-hover-documentation="&lt;pre&gt;&lt;code class=&quot;language-ts&quot;&gt;(parameter) tokens: TokenInfo[]
+&lt;/code&gt;&lt;/pre&gt;
+" data-definition-file="passes/MultilineTokenPass.ts" data-definition-line="11" data-definition-column="9">tokens</span><span class="punctuation delimiter">;</span>
+	<span class="punctuation bracket">}</span>
 <span class="punctuation bracket">}</span></code></pre></div>
     </div>
 

@@ -188,9 +188,21 @@ export class HandlebarsTemplateEngine {
 			// If still not found, throw error
 			if (!templateContent) {
 				const searchPaths = [
-					this.customTemplateDir ? path.join(this.customTemplateDir, "layouts", `${templateName}.hbs`) : undefined,
-					path.join(this.defaultTemplateDir, "layouts", `${templateName}.hbs`)
-				].filter(Boolean).join(", ");
+					this.customTemplateDir
+						? path.join(
+								this.customTemplateDir,
+								"layouts",
+								`${templateName}.hbs`,
+							)
+						: undefined,
+					path.join(
+						this.defaultTemplateDir,
+						"layouts",
+						`${templateName}.hbs`,
+					),
+				]
+					.filter(Boolean)
+					.join(", ");
 
 				throw new Error(
 					`Template not found: ${templateName} (searched in: ${searchPaths})`,
