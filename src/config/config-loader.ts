@@ -28,6 +28,17 @@ export class ConfigLoader {
 		lsp: {
 			provider: "scip",
 		},
+		template: {
+			layout: "default",
+			theme: "light",
+		},
+		features: {
+			syntaxHighlighting: true,
+			hoverDocumentation: true,
+			definitionJumping: true,
+			commentMarkdown: true,
+			navigationIndex: false,
+		},
 	};
 	/**
 	 * Load configuration from a .cire file and merge with defaults
@@ -116,6 +127,18 @@ export class ConfigLoader {
 						...userConfig.lsp,
 					}
 				: defaultConfig.lsp,
+			template: userConfig.template
+				? {
+						...defaultConfig.template,
+						...userConfig.template,
+					}
+				: defaultConfig.template,
+			features: userConfig.features
+				? {
+						...defaultConfig.features,
+						...userConfig.features,
+					}
+				: defaultConfig.features,
 		};
 
 		// Resolve paths relative to current working directory

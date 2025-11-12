@@ -128,14 +128,19 @@ export class ProjectBuilder {
 	 */
 	private createWorkflowManager(config: CireConfig): WorkflowManager {
 		const workflowConfig: WorkflowConfig = {
-			syntaxHighlighting: true,
-			hoverDocumentation: !!config.lsp?.indexPath,
-			commentToMarkdown: true,
+			syntaxHighlighting: config.features?.syntaxHighlighting ?? true,
+			hoverDocumentation:
+				(config.features?.hoverDocumentation ?? true) &&
+				!!config.lsp?.indexPath,
+			definitionJumping:
+				(config.features?.definitionJumping ?? true) &&
+				!!config.lsp?.indexPath,
+			commentToMarkdown: config.features?.commentMarkdown ?? true,
 			scipIndexPath: config.lsp?.indexPath,
 			language: config.input.language,
 		};
 
-		return new WorkflowManager(workflowConfig);
+		return new WorkflowManager(workflowConfig, config);
 	}
 
 	/**

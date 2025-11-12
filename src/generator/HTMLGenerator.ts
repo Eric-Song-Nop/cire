@@ -3,13 +3,31 @@ import * as path from "node:path";
 import * as commentParser from "comment-parser";
 import { marked } from "marked";
 import { match } from "ts-pattern";
-import type { DocGenerator, FileIR, Position, TokenInfo } from "../types";
+import {
+	HandlebarsTemplateEngine,
+	type TemplateData,
+} from "../template/HandlebarsTemplateEngine";
+import type {
+	CireConfig,
+	DocGenerator,
+	FileIR,
+	Position,
+	TokenInfo,
+} from "../types";
 
 /**
  * We turn the source code with Highlight Info into HTML
  * Only syntax highlighting is considered - hover and definition are ignored for now
  */
 class HTMLGenerator implements DocGenerator {
+	private templateEngine: HandlebarsTemplateEngine;
+	private config: CireConfig;
+
+	constructor(config: CireConfig) {
+		this.config = config;
+		const templateDir = path.join(__dirname, "../../templates");
+		this.templateEngine = new HandlebarsTemplateEngine(templateDir);
+	}
 	/**
 	 * Convert position to character offset in source text
 	 */
@@ -112,43 +130,97 @@ class HTMLGenerator implements DocGenerator {
 		try {
 			// Read source file content
 			const sourcePath = path.join(projectRoot, fileIR.relativePath);
-			// Calculate relative path from output file back to output root (where CSS is)
-			const outputFileDir = path.dirname(fileIR.relativePath);
-			const cssPath =
-				path.relative(outputFileDir, "default.css") || "./default.css";
 			if (!fs.existsSync(sourcePath)) {
 				throw new Error(`Source file not found: ${sourcePath}`);
 			}
 
 			const sourceContent = fs.readFileSync(sourcePath, "utf-8");
 
-			// Check if we have comment tokens - if not, use original method
-			const hasCommentTokens = info.some((token) =>
-				token.meta.some((m) => m.type === "comment"),
-			);
-
-			if (!hasCommentTokens) {
-				// Original method for backward compatibility
-				const sortedTokens = this.sortTokens(info);
-				const htmlContent = this.generateHighlightedHTML(
-					sourceContent,
-					sortedTokens,
-				);
-				return this.wrapInHTMLTemplate(fileIR, htmlContent, cssPath);
-			}
-
-			// New Markdown-style rendering approach
-			const htmlContent = this.generateMarkdownHTML(
+			// Generate HTML content using existing logic
+			const htmlContent = this.generateContent(
 				fileIR,
 				sourceContent,
 				info,
 			);
-			return this.wrapInHTMLTemplate(fileIR, htmlContent, cssPath);
+
+			// Prepare template data
+			const templateData = this.prepareTemplateData(
+				fileIR,
+				htmlContent,
+				projectRoot,
+			);
+
+			// Use template engine to render final HTML
+			const layout = this.config.template?.layout || "default";
+			return this.templateEngine.render(layout, templateData);
 		} catch (error) {
 			throw new Error(
 				`Failed to generate HTML for ${fileIR.relativePath}: ${error}`,
 			);
 		}
+	}
+
+	/**
+	 * Generate HTML content (existing logic)
+	 */
+	private generateContent(
+		fileIR: FileIR,
+		sourceContent: string,
+		info: TokenInfo[],
+	): string {
+		// Check if we have comment tokens - if not, use original method
+		const hasCommentTokens = info.some((token) =>
+			token.meta.some((m) => m.type === "comment"),
+		);
+
+		if (!hasCommentTokens) {
+			// Original method for backward compatibility
+			const sortedTokens = this.sortTokens(info);
+			return this.generateHighlightedHTML(sourceContent, sortedTokens);
+		}
+
+		// New Markdown-style rendering approach
+		return this.generateMarkdownHTML(fileIR, sourceContent, info);
+	}
+
+	/**
+	 * Prepare template data for handlebars rendering
+	 */
+	private prepareTemplateData(
+		fileIR: FileIR,
+		htmlContent: string,
+		projectRoot: string,
+	): TemplateData {
+		const fileName = path.basename(fileIR.relativePath);
+		const cssPath = this.calculateCSSPath(fileIR);
+
+		const templateData = {
+			title: `${fileName} - ${this.config.name || "Cire Documentation"}`,
+			content: htmlContent,
+			cssFiles: [cssPath],
+			customCSS: this.config.template?.customCSS,
+			features: {
+				syntaxHighlighting:
+					this.config.features?.syntaxHighlighting ?? true,
+				hoverDocumentation:
+					this.config.features?.hoverDocumentation ?? true,
+				definitionJumping:
+					this.config.features?.definitionJumping ?? true,
+				commentMarkdown: this.config.features?.commentMarkdown ?? true,
+				navigationIndex: this.config.features?.navigationIndex ?? false,
+			},
+			theme: this.config.template?.theme || "light",
+		};
+
+		return templateData;
+	}
+
+	/**
+	 * Calculate CSS path relative to output file
+	 */
+	private calculateCSSPath(fileIR: FileIR): string {
+		const outputFileDir = path.dirname(fileIR.relativePath);
+		return path.relative(outputFileDir, "default.css") || "./default.css";
 	}
 
 	/**
@@ -536,243 +608,6 @@ class HTMLGenerator implements DocGenerator {
 		}
 
 		return `<pre><code>${result}</code></pre>`;
-	}
-
-	/**
-	 * Wrap content in HTML template with hover support
-	 */
-	private wrapInHTMLTemplate(
-		fileIR: FileIR,
-		content: string,
-		cssPath: string,
-	): string {
-		const fileName = path.basename(fileIR.relativePath);
-		return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${fileName} - Cire Documentation</title>
-    <link rel="stylesheet" href="${cssPath}">
-</head>
-<body>
-    <div class="container">
-        ${content}
-    </div>
-
-    <div class="hover-tooltip" id="tooltip">
-        <div class="symbol-name" id="tooltip-symbol"></div>
-        <div class="documentation" id="tooltip-docs"></div>
-    </div>
-
-    <script>
-        const tooltip = document.getElementById('tooltip');
-        const tooltipSymbol = document.getElementById('tooltip-symbol');
-        const tooltipDocs = document.getElementById('tooltip-docs');
-        let hideTimeout;
-
-        function parseMarkdown(text) {
-            if (!text) return '';
-            // Markdown is now preprocessed on server-side using marked
-            // Just return the pre-rendered HTML directly
-            return text;
-        }
-
-        function showTooltip(element, content, documentation) {
-            clearTimeout(hideTimeout);
-
-            tooltipSymbol.textContent = content;
-            tooltipDocs.innerHTML = parseMarkdown(documentation || '');
-
-            const rect = element.getBoundingClientRect();
-            const tooltipRect = tooltip.getBoundingClientRect();
-
-            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
-            let top = rect.top - tooltipRect.height - 10;
-
-            // Keep tooltip within viewport
-            if (left < 10) left = 10;
-            if (left + tooltipRect.width > window.innerWidth - 10) {
-                left = window.innerWidth - tooltipRect.width - 10;
-            }
-            if (top < 10) {
-                top = rect.bottom + 10;
-            }
-
-            tooltip.style.left = left + window.scrollX + 'px';
-            tooltip.style.top = top + window.scrollY + 'px';
-
-            tooltip.classList.add('visible');
-        }
-
-        function hideTooltip() {
-            hideTimeout = setTimeout(() => {
-                tooltip.classList.remove('visible');
-            }, 100);
-        }
-
-        // Add hover and click listeners to all interactive tokens
-        document.addEventListener('DOMContentLoaded', function() {
-            const hoverableElements = document.querySelectorAll('[data-hover-content]');
-            const clickableElements = document.querySelectorAll('[data-definition-file]');
-
-            // Setup hover functionality
-            hoverableElements.forEach(function(element) {
-                const content = element.getAttribute('data-hover-content');
-                const documentation = element.getAttribute('data-hover-documentation');
-
-                element.addEventListener('mouseenter', function(e) {
-                    showTooltip(e.target, content, documentation);
-                });
-
-                element.addEventListener('mouseleave', hideTooltip);
-            });
-
-            // Setup click-to-definition functionality
-            clickableElements.forEach(function(element) {
-                element.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    const definitionFile = element.getAttribute('data-definition-file');
-                    const definitionLine = parseInt(element.getAttribute('data-definition-line') || '0');
-                    const definitionColumn = parseInt(element.getAttribute('data-definition-column') || '0');
-
-                    if (definitionFile && definitionLine >= 0) {
-                        jumpToDefinition(definitionFile, definitionLine, definitionColumn);
-                    }
-                });
-            });
-
-            // Hide tooltip when clicking elsewhere
-            document.addEventListener('click', hideTooltip);
-        });
-
-        function jumpToDefinition(filePath, line, column) {
-            // For now, we assume definition is in the same file
-            // TODO: Implement proper cross-file navigation based on project structure
-            console.log('Jumping to definition in:', filePath, 'line:', line, 'column:', column);
-
-            // Try to find the element with definition data attributes that matches
-            var allElements = document.querySelectorAll('[data-definition-line]');
-            var bestMatch = null;
-            var bestDistance = Infinity;
-
-            for (var i = 0; i < allElements.length; i++) {
-                var element = allElements[i];
-                var elementLine = parseInt(element.getAttribute('data-definition-line') || '0');
-                var elementColumn = parseInt(element.getAttribute('data-definition-column') || '0');
-                var elementFile = element.getAttribute('data-definition-file');
-
-                // Check if this is the definition we're looking for
-                if (elementFile === filePath && elementLine === line) {
-                    // Simple distance calculation for column
-                    var columnDistance = Math.abs(elementColumn - column);
-                    if (columnDistance < bestDistance) {
-                        bestDistance = columnDistance;
-                        bestMatch = element;
-                    }
-                }
-            }
-
-            if (bestMatch) {
-                // Found the exact definition element
-                bestMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                highlightDefinition(bestMatch);
-                return;
-            }
-
-            // Fallback: try to find any element on the target line
-            var codeElements = document.querySelectorAll('pre code');
-            var currentLine = 0;
-
-            for (var j = 0; j < codeElements.length; j++) {
-                var codeElement = codeElements[j];
-                var lines = codeElement.textContent.split('\\n');
-
-                if (currentLine + lines.length > line) {
-                    // Found the code block containing the target line
-                    var relativeLine = line - currentLine;
-
-                    // Find spans in this code block
-                    var spans = codeElement.querySelectorAll('span');
-                    for (var k = 0; k < spans.length; k++) {
-                        var span = spans[k];
-                        // Simple heuristic: check if span has any definition-related data
-                        if (span.getAttribute('data-definition-file') === filePath) {
-                            span.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            highlightDefinition(span);
-                            return;
-                        }
-                    }
-
-                    // If no specific span found, scroll to the code block
-                    codeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    highlightDefinition(codeElement);
-                    return;
-                }
-
-                currentLine += lines.length;
-            }
-
-            showNotification('Definition not found', 'warning');
-        }
-
-        function highlightDefinition(element) {
-            // Check if element is valid
-            if (!element || !element.classList) {
-                console.warn('Invalid element for highlight:', element);
-                return;
-            }
-
-            // Remove existing highlights
-            document.querySelectorAll('.definition-highlight').forEach(function(el) {
-                el.classList.remove('definition-highlight');
-            });
-
-            // Add highlight class
-            element.classList.add('definition-highlight');
-
-            // Remove highlight after 3 seconds
-            setTimeout(function() {
-                if (element && element.classList) {
-                    element.classList.remove('definition-highlight');
-                }
-            }, 3000);
-        }
-
-        function showNotification(message, type) {
-            type = type || 'info';
-            // Create notification element
-            const notification = document.createElement('div');
-            notification.className = 'notification notification-' + type;
-            notification.textContent = message;
-
-            var bgColor = type === 'info' ? '#2196f3' : (type === 'warning' ? '#ff9800' : '#4caf50');
-            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: ' + bgColor + '; color: white; padding: 12px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000; font-family: "Segoe UI", sans-serif; font-size: 14px; opacity: 0; transform: translateY(-20px); transition: all 0.3s ease;';
-
-            document.body.appendChild(notification);
-
-            // Animate in
-            setTimeout(function() {
-                notification.style.opacity = '1';
-                notification.style.transform = 'translateY(0)';
-            }, 10);
-
-            // Remove after 4 seconds
-            setTimeout(function() {
-                notification.style.opacity = '0';
-                notification.style.transform = 'translateY(-20px)';
-                setTimeout(function() {
-                    if (notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 300);
-            }, 4000);
-        }
-    </script>
-</body>
-</html>`;
 	}
 }
 
