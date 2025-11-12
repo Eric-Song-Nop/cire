@@ -88,6 +88,7 @@ cire build [-c .cire] [-o dist/] [-w] [-v]
 4. **生成器模块** (`src/generator/`)
    - `HTMLGenerator`: 将 Token 转换为带样式的 HTML
    - 支持交互式 hover tooltips 和 Markdown 渲染
+   - **内置同文件定义跳转**: 完整的前端 JavaScript 实现，支持点击跳转到符号定义
    - 使用外部 CSS 文件进行样式分离
    - 支持响应式设计和现代 CSS 特性
 
@@ -142,7 +143,7 @@ Cire 支持两种分析器，可以单独或组合使用：
 
 2. **SCIPAnalyzer**: 基于 SCIP 协议的代码智能分析
    - 提供丰富的 hover 文档信息
-   - 支持符号定义和引用跳转
+   - **支持同文件内的定义和引用跳转**：自动提取符号定义位置，为每个引用生成跳转链接
    - 需要预先生成的 SCIP 索引文件
    - 支持全局符号查找和文档路径匹配
 
@@ -180,6 +181,13 @@ WorkflowManager 提供统一的处理流程：
 - **客户端渲染**: JavaScript 在浏览器中解析 Markdown 并显示 tooltips
 - **支持的 Markdown**: 代码块、内联代码、粗体、斜体、列表、标题等
 - **智能定位**: 自动调整 tooltip 位置以避免超出视窗
+
+### 定义跳转功能
+- **同文件跳转**: 点击符号可直接跳转到同文件内的定义位置
+- **精确定位**: 基于行号和列号的精确匹配算法，确保跳转到准确的符号定义
+- **视觉反馈**: 跳转后对目标符号进行高亮显示（3秒后自动消失）
+- **平滑滚动**: 使用 `scrollIntoView` 实现平滑的页面滚动效果
+- **数据属性**: 使用 `data-definition-file`、`data-definition-line`、`data-definition-column` 存储定义信息
 
 ### SCIP 集成
 - **协议解析**: 使用 Protocol Buffers 解析 SCIP 索引文件
@@ -289,7 +297,7 @@ pnpm add -D live-server && npx live-server docs
 - **完整的 CLI 接口**: 智能模式检测（单文件vs项目），完整的命令行参数解析
 - **三分析器架构**: TSHighlighter、SCIPAnalyzer、CommentAnalyzer 全部实现
 - **Token 处理管道**: 排序、合并、注释合并、过滤（25个测试用例覆盖）
-- **HTML 生成器**: 语法高亮、hover 功能、Markdown 渲染、响应式设计
+- **HTML 生成器**: 语法高亮、hover 功能、Markdown 渲染、响应式设计、**同文件定义跳转**
 - **样式系统**: 模块化 CSS 设计，暗色模式支持，双类名兼容
 - **配置系统**: JSON5 格式支持，完整配置验证和默认值处理
 - **工作流管理**: WorkflowManager 统一协调，ProjectBuilder 项目构建
@@ -301,6 +309,7 @@ pnpm add -D live-server && npx live-server docs
 - **智能模式切换**: 自动检测单文件处理 vs 项目批量构建
 - **注释驱动生成**: JSDoc 和块注释自动转换为 Markdown 内容
 - **双模式渲染**: 传统语法高亮 vs Markdown 分离渲染
+- **智能定义跳转**: 基于行号和列号的精确匹配，支持同文件内的符号定义跳转
 - **增量构建支持**: 基于 SCIP 索引的智能符号查找
 - **路径标准化**: 跨平台路径处理和 URI 解码
 - **模板系统**: 可扩展的 HTML 模板架构
