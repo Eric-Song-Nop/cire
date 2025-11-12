@@ -1,28 +1,159 @@
 /* Cire Default Theme - Static Documentation Generator */
 
+/* CSS Variables for theming */
+:root {
+    --bg-color: #f8f9fa;
+    --container-bg: white;
+    --text-color: #333333;
+    --border-color: #e9ecef;
+    --code-bg: #f8f9fa;
+    --hover-bg: #e3f2fd;
+    --hover-border: #2196f3;
+    --tooltip-bg: #2c3e50;
+    --tooltip-text: #ecf0f1;
+    --tooltip-border: #34495e;
+    --tooltip-symbol: #4fc3f7;
+    --tooltip-doc: #e0e0e0;
+    --shadow-color: rgba(0,0,0,0.08);
+    --container-shadow: 0 2px 8px var(--shadow-color);
+
+    /* Syntax highlighting colors - light theme */
+    --syntax-keyword: #0066cc;
+    --syntax-string: #008000;
+    --syntax-comment: #808080;
+    --syntax-number: #ff6600;
+    --syntax-function: #795da3;
+    --syntax-type: #0086b3;
+    --syntax-variable: #660066;
+    --syntax-operator: #a67f59;
+    --syntax-punctuation: #333333;
+    --syntax-definition: #ff6600;
+
+    /* Notification colors - light theme */
+    --notification-info-bg: #2196f3;
+    --notification-warning-bg: #ff9800;
+    --notification-success-bg: #4caf50;
+    --notification-text: white;
+}
+
+/* Dark theme variables */
+.dark-theme {
+    --bg-color: #1e1e1e;
+    --container-bg: #2d2d2d;
+    --text-color: #e0e0e0;
+    --border-color: #404040;
+    --code-bg: #252526;
+    --hover-bg: #2a2a2a;
+    --hover-border: #4fc3f7;
+    --tooltip-bg: #3c3c3c;
+    --tooltip-text: #e0e0e0;
+    --tooltip-border: #555555;
+    --tooltip-symbol: #4fc3f7;
+    --tooltip-doc: #b0b0b0;
+    --shadow-color: rgba(0,0,0,0.3);
+    --container-shadow: 0 4px 16px var(--shadow-color);
+
+    /* Syntax highlighting colors - dark theme */
+    --syntax-keyword: #569cd6;
+    --syntax-string: #ce9178;
+    --syntax-comment: #6a9955;
+    --syntax-number: #b5cea8;
+    --syntax-function: #dcdcaa;
+    --syntax-type: #4ec9b0;
+    --syntax-variable: #9cdcfe;
+    --syntax-operator: #d4d4d4;
+    --syntax-punctuation: #d4d4d4;
+    --syntax-definition: #c586c0;
+
+    /* Notification colors - dark theme */
+    --notification-info-bg: #1976d2;
+    --notification-warning-bg: #f57c00;
+    --notification-success-bg: #388e3c;
+    --notification-text: white;
+}
+
+/* Auto theme - respects system preference */
+.auto-theme {
+    --bg-color: #f8f9fa;
+    --container-bg: white;
+    --text-color: #333333;
+    --border-color: #e9ecef;
+    --code-bg: #f8f9fa;
+    --hover-bg: #e3f2fd;
+    --hover-border: #2196f3;
+    --tooltip-bg: #2c3e50;
+    --tooltip-text: #ecf0f1;
+    --tooltip-border: #34495e;
+    --tooltip-symbol: #4fc3f7;
+    --tooltip-doc: #e0e0e0;
+    --shadow-color: rgba(0,0,0,0.08);
+    --container-shadow: 0 2px 8px var(--shadow-color);
+}
+
+@media (prefers-color-scheme: dark) {
+    .auto-theme {
+        --bg-color: #1e1e1e;
+        --container-bg: #2d2d2d;
+        --text-color: #e0e0e0;
+        --border-color: #404040;
+        --code-bg: #252526;
+        --hover-bg: #2a2a2a;
+        --hover-border: #4fc3f7;
+        --tooltip-bg: #3c3c3c;
+        --tooltip-text: #e0e0e0;
+        --tooltip-border: #555555;
+        --tooltip-symbol: #4fc3f7;
+        --tooltip-doc: #b0b0b0;
+        --shadow-color: rgba(0,0,0,0.3);
+        --container-shadow: 0 4px 16px var(--shadow-color);
+
+        /* Syntax highlighting colors - dark theme */
+        --syntax-keyword: #569cd6;
+        --syntax-string: #ce9178;
+        --syntax-comment: #6a9955;
+        --syntax-number: #b5cea8;
+        --syntax-function: #dcdcaa;
+        --syntax-type: #4ec9b0;
+        --syntax-variable: #9cdcfe;
+        --syntax-operator: #d4d4d4;
+        --syntax-punctuation: #d4d4d4;
+        --syntax-definition: #c586c0;
+
+        /* Notification colors - dark theme */
+        --notification-info-bg: #1976d2;
+        --notification-warning-bg: #f57c00;
+        --notification-success-bg: #388e3c;
+        --notification-text: white;
+    }
+}
+
 /* Base styles */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     margin: 0;
     padding: 12px;
-    background-color: #f8f9fa;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     font-size: 16px;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .container {
     max-width: 800px;
     margin: 0 auto;
-    background: white;
+    background: var(--container-bg);
+    color: var(--text-color);
     padding: 24px;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    box-shadow: var(--container-shadow);
+    transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Code block styles */
 pre {
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 16px;
     overflow-x: auto;
@@ -32,6 +163,7 @@ pre {
     -moz-tab-size: 2;
     white-space: pre-wrap;
     word-wrap: break-word;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 code {
@@ -47,15 +179,15 @@ code {
 }
 
 .token-hoverable:hover {
-    background-color: #e3f2fd;
-    border-bottom-color: #2196f3;
+    background-color: var(--hover-bg);
+    border-bottom-color: var(--hover-border);
 }
 
 /* Tooltip styles */
 .hover-tooltip {
     position: absolute;
-    background: #2c3e50;
-    color: #ecf0f1;
+    background: var(--tooltip-bg);
+    color: var(--tooltip-text);
     padding: 14px 18px;
     border-radius: 8px;
     font-size: 13px;
@@ -63,12 +195,12 @@ code {
     z-index: 1000;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease, background-color 0.3s ease, color 0.3s ease;
     max-width: 350px;
     word-wrap: break-word;
     box-shadow: 0 4px 16px rgba(0,0,0,0.25);
     line-height: 1.6;
-    border: 1px solid #34495e;
+    border: 1px solid var(--tooltip-border);
 }
 
 .hover-tooltip.visible {
@@ -77,17 +209,17 @@ code {
 
 .hover-tooltip .symbol-name {
     font-weight: bold;
-    color: #4fc3f7;
+    color: var(--tooltip-symbol);
     margin-bottom: 4px;
 }
 
 .hover-tooltip .documentation {
-    color: #e0e0e0;
+    color: var(--tooltip-doc);
     font-size: 12px;
     white-space: pre-line;
     margin-top: 8px;
     padding-top: 8px;
-    border-top: 1px solid #555;
+    border-top: 1px solid var(--tooltip-border);
 }
 
 .hover-tooltip .documentation p {
@@ -99,23 +231,27 @@ code {
 }
 
 .hover-tooltip .documentation code {
-    background: #444;
-    color: #4fc3f7;
+    background: var(--code-bg);
+    color: var(--tooltip-symbol);
     padding: 2px 4px;
     border-radius: 3px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 11px;
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .hover-tooltip .documentation pre {
-    background: #2a2a2a;
-    color: #e0e0e0;
+    background: var(--code-bg);
+    color: var(--tooltip-doc);
     padding: 8px;
     border-radius: 4px;
     overflow-x: auto;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 11px;
     margin: 4px 0;
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .hover-tooltip .documentation ul,
@@ -129,12 +265,12 @@ code {
 }
 
 .hover-tooltip .documentation em {
-    color: #ffeb3b;
+    color: var(--tooltip-symbol);
     font-style: italic;
 }
 
 .hover-tooltip .documentation strong {
-    color: #ffeb3b;
+    color: var(--tooltip-symbol);
     font-weight: bold;
 }
 
@@ -150,23 +286,23 @@ code {
 }
 
 /* Legacy token- prefixed syntax highlighting styles */
-.token-keyword { color: #0066cc; font-weight: bold; }
-.token-string { color: #008000; }
+.token-keyword { color: var(--syntax-keyword); font-weight: bold; }
+.token-string { color: var(--syntax-string); }
 .token-comment {
-    color: #808080;
+    color: var(--syntax-comment);
     display: inline-block;
     border-radius: 4px;
     padding: 2px 4px;
     margin: 2px 0;
 }
-.token-number { color: #ff6600; }
-.token-boolean { color: #ff6600; font-weight: bold; }
-.token-function { color: #795da3; }
-.token-type { color: #0086b3; }
-.token-builtin { color: #795da3; font-weight: bold; }
-.token-variable { color: #660066; }
-.token-parameter { color: #660066; font-style: italic; }
-.token-definition { font-weight: bold; border-bottom: 2px solid #ff6600; }
+.token-number { color: var(--syntax-number); }
+.token-boolean { color: var(--syntax-number); font-weight: bold; }
+.token-function { color: var(--syntax-function); }
+.token-type { color: var(--syntax-type); }
+.token-builtin { color: var(--syntax-function); font-weight: bold; }
+.token-variable { color: var(--syntax-variable); }
+.token-parameter { color: var(--syntax-variable); font-style: italic; }
+.token-definition { font-weight: bold; border-bottom: 2px solid var(--syntax-definition); }
 
 /* Clickable token styles */
 .token-clickable {
@@ -176,37 +312,37 @@ code {
 }
 
 .token-clickable:hover {
-    background-color: rgba(255, 102, 0, 0.1);
+    background-color: var(--hover-bg);
     border-radius: 2px;
 }
 
 /* Tree-sitter syntax highlighting styles (without token- prefix) */
-.keyword { color: #0066cc; font-weight: bold; }
-.string { color: #008000; }
-.string.special { color: #008000; font-weight: bold; }
-.comment { color: #808080; font-style: italic; }
-.number { color: #ff6600; }
-.constant { color: #ff6600; font-weight: bold; }
-.constant.builtin { color: #ff6600; font-weight: bold; }
-.function { color: #795da3; }
-.function.method { color: #795da3; }
-.function.builtin { color: #795da3; font-weight: bold; }
-.constructor { color: #795da3; font-weight: bold; }
-.type { color: #0086b3; }
-.type.builtin { color: #0086b3; font-weight: bold; }
-.variable { color: #660066; }
-.variable.parameter { color: #660066; font-style: italic; }
-.variable.builtin { color: #660066; font-weight: bold; }
-.property { color: #660066; }
-.property.function { color: #795da3; }
-.property.method { color: #795da3; }
-.operator { color: #a67f59; }
-.punctuation { color: #333; }
-.punctuation.delimiter { color: #333; }
-.punctuation.bracket { color: #333; }
-.punctuation.special { color: #333; }
-.embedded { color: #660066; }
-.definition { font-weight: bold; border-bottom: 2px solid #ff6600; }
+.keyword { color: var(--syntax-keyword); font-weight: bold; }
+.string { color: var(--syntax-string); }
+.string.special { color: var(--syntax-string); font-weight: bold; }
+.comment { color: var(--syntax-comment); font-style: italic; }
+.number { color: var(--syntax-number); }
+.constant { color: var(--syntax-number); font-weight: bold; }
+.constant.builtin { color: var(--syntax-number); font-weight: bold; }
+.function { color: var(--syntax-function); }
+.function.method { color: var(--syntax-function); }
+.function.builtin { color: var(--syntax-function); font-weight: bold; }
+.constructor { color: var(--syntax-function); font-weight: bold; }
+.type { color: var(--syntax-type); }
+.type.builtin { color: var(--syntax-type); font-weight: bold; }
+.variable { color: var(--syntax-variable); }
+.variable.parameter { color: var(--syntax-variable); font-style: italic; }
+.variable.builtin { color: var(--syntax-variable); font-weight: bold; }
+.property { color: var(--syntax-variable); }
+.property.function { color: var(--syntax-function); }
+.property.method { color: var(--syntax-function); }
+.operator { color: var(--syntax-operator); }
+.punctuation { color: var(--syntax-punctuation); }
+.punctuation.delimiter { color: var(--syntax-punctuation); }
+.punctuation.bracket { color: var(--syntax-punctuation); }
+.punctuation.special { color: var(--syntax-punctuation); }
+.embedded { color: var(--syntax-variable); }
+.definition { font-weight: bold; border-bottom: 2px solid var(--syntax-definition); }
 
 /* Definition highlight animation */
 .definition-highlight {
@@ -214,9 +350,24 @@ code {
     border-radius: 3px;
     box-shadow: 0 0 8px rgba(255, 102, 0, 0.4);
     animation: highlightPulse 0.6s ease-in-out;
-    border-left: 3px solid #ff6600;
+    border-left: 3px solid var(--syntax-definition);
     padding-left: 2px;
     margin-left: -2px;
+}
+
+/* Dark theme definition highlight */
+.dark-theme .definition-highlight {
+    background: linear-gradient(90deg, rgba(197, 134, 192, 0.3), rgba(197, 134, 192, 0.1));
+    box-shadow: 0 0 8px rgba(197, 134, 192, 0.4);
+    border-left-color: var(--syntax-definition);
+}
+
+@media (prefers-color-scheme: dark) {
+    .auto-theme .definition-highlight {
+        background: linear-gradient(90deg, rgba(197, 134, 192, 0.3), rgba(197, 134, 192, 0.1));
+        box-shadow: 0 0 8px rgba(197, 134, 192, 0.4);
+        border-left-color: var(--syntax-definition);
+    }
 }
 
 @keyframes highlightPulse {
@@ -240,13 +391,14 @@ code {
 /* Enhanced comment styles */
 .jsdoc-comment {
     display: block;
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background: var(--code-bg);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 8px 12px;
     margin: 8px 0;
-    color: #495057;
+    color: var(--text-color);
     font-style: normal;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 .jsdoc-description {
@@ -256,7 +408,7 @@ code {
 }
 
 .jsdoc-tags {
-    border-top: 1px solid #dee2e6;
+    border-top: 1px solid var(--border-color);
     padding-top: 8px;
     margin-top: 8px;
 }
@@ -268,32 +420,34 @@ code {
 }
 
 .jsdoc-tag-name {
-    color: #0066cc;
+    color: var(--syntax-keyword);
     font-weight: bold;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
 .jsdoc-tag-description {
-    color: #495057;
+    color: var(--text-color);
     margin-left: 4px;
 }
 
 .jsdoc-tag-description code {
-    background: #e9ecef;
-    color: #c7254e;
+    background: var(--code-bg);
+    color: var(--syntax-number);
     padding: 2px 4px;
     border-radius: 3px;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 11px;
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .jsdoc-tag-description em {
-    color: #6c757d;
+    color: var(--syntax-comment);
     font-style: italic;
 }
 
 .jsdoc-tag-description strong {
-    color: #495057;
+    color: var(--text-color);
     font-weight: bold;
 }
 
@@ -373,4 +527,35 @@ code {
     .jsdoc-tag {
         font-size: 11px;
     }
+}
+
+/* Notification styles */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--notification-info-bg);
+    color: var(--notification-text);
+    padding: 12px 20px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 10000;
+    font-family: "Segoe UI", sans-serif;
+    font-size: 14px;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.3s ease;
+}
+
+.notification.notification-warning {
+    background: var(--notification-warning-bg);
+}
+
+.notification.notification-success {
+    background: var(--notification-success-bg);
+}
+
+.notification.notification-show {
+    opacity: 1;
+    transform: translateY(0);
 }

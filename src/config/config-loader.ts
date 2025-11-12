@@ -14,6 +14,7 @@ export class ConfigLoader {
 		name: "Cire Project",
 		version: "1.0.0",
 		description: "Static website generated with Cire",
+		logLevel: "error",
 		input: {
 			root: "src",
 			include: ["**/*.ts"],
@@ -24,13 +25,14 @@ export class ConfigLoader {
 			directory: "dist",
 			baseUrl: "/",
 		},
-		logLevel: "error",
 		lsp: {
+			indexPath: undefined, // Path to LSIF/SCIP index file
 			provider: "scip",
 		},
 		template: {
 			layout: "default",
-			theme: "light",
+			templateDir: undefined, // Custom template directory path
+			customCSS: undefined, // Custom CSS file path
 		},
 		features: {
 			syntaxHighlighting: true,

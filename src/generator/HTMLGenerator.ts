@@ -25,8 +25,9 @@ class HTMLGenerator implements DocGenerator {
 
 	constructor(config: CireConfig) {
 		this.config = config;
-		const templateDir = path.join(__dirname, "../../templates");
-		this.templateEngine = new HandlebarsTemplateEngine(templateDir);
+		const defaultTemplateDir = path.join(__dirname, "../../templates");
+		const customTemplateDir = config.template?.templateDir;
+		this.templateEngine = new HandlebarsTemplateEngine(defaultTemplateDir, customTemplateDir);
 	}
 	/**
 	 * Convert position to character offset in source text
@@ -209,7 +210,7 @@ class HTMLGenerator implements DocGenerator {
 				commentMarkdown: this.config.features?.commentMarkdown ?? true,
 				navigationIndex: this.config.features?.navigationIndex ?? false,
 			},
-			theme: this.config.template?.theme || "light",
+			layout: this.config.template?.layout || "default",
 		};
 
 		return templateData;

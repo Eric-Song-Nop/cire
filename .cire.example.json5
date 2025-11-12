@@ -51,9 +51,21 @@
 
   // 模板配置（可选）
   template: {
-    layout: "default",                // 布局模板: "default" | "minimal"
-    theme: "light",                   // 主题: "light" | "dark" | "auto"
-    // customCSS: "./custom.css",      // 自定义 CSS 文件路径（可选）
+    layout: "default",                // 布局模板: "default" | "minimal" | 自定义模板名
+    templateDir: "./custom-templates", // 自定义模板目录路径（可选）
+    // 当指定 templateDir 时，将优先使用该目录中的模板，结构如下：
+    // custom-templates/
+    // ├── layouts/           # 布局模板
+    // │   ├── default.hbs   # 覆盖内置default模板
+    // │   ├── my-custom.hbs # 自定义模板
+    // │   └── minimal.hbs   # 覆盖内置minimal模板
+    // ├── partials/         # 可复用组件
+    // │   ├── head.hbs
+    // │   ├── footer.hbs    # 自定义组件
+    // │   └── sidebar.hbs
+    // └── styles/           # 自定义样式
+    //     └── custom.css
+    customCSS: "./custom.css",        // 自定义 CSS 文件路径（可选）
   },
 
   // 功能开关（可选）
