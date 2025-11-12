@@ -9,7 +9,14 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { scip } from "@sourcegraph/scip/bindings/typescript/scip.js";
 import { BinaryReader } from "google-protobuf";
-import type { Analyzer, FileIR, TokenInfo } from "../types";
+import type {
+	Analyzer,
+	FileIR,
+	MetaInfo,
+	Position,
+	TextSpan,
+	TokenInfo,
+} from "../types";
 
 export class SCIPAnalyzer implements Analyzer {
 	private scipIndexPath: string;
@@ -61,95 +68,106 @@ export class SCIPAnalyzer implements Analyzer {
 			);
 			return [];
 		}
-		return this.resolveHoverInfo(document);
-	}
+		// First we get all document symbols and external symbols
+		const accessible_symbols: scip.SymbolInformation[] =
+			document.symbols.concat(this.scipIndex.external_symbols);
 
-	private resolveHoverInfo(document: scip.Document): TokenInfo[] {
-		const occurrences = document.occurrences;
-		const tokenInfos: TokenInfo[] = [];
-
-		console.log(`🔍 Analyzing document: ${document.relative_path}`);
-		console.log(
-			`  📄 Found ${occurrences ? occurrences.length : 0} occurrences`,
-		);
-
-		if (!occurrences || occurrences.length === 0) {
-			return [];
+		const symbolMap: Record<string, scip.SymbolInformation> = {};
+		for (const symbol of accessible_symbols) {
+			symbolMap[symbol.symbol] = symbol;
 		}
 
-		for (const occurrence of occurrences) {
-			// Skip occurrences without range or symbol
-			if (!occurrence.range || !occurrence.symbol) continue;
-
-			// Convert SCIP range to TextSpan
-			const span = this.convertSCIPRangeToTextSpan(occurrence.range);
-			if (!span) continue;
-
-			// Try to find symbol documentation from symbols in the document first
-			let symbolInfo = document.symbols?.find(
-				(sym) => sym.symbol === occurrence.symbol,
+		const symbolDefSpan: Record<string, Position> = {};
+		for (const occurrence of document.occurrences) {
+			if (!(occurrence.symbol in symbolMap)) {
+				continue;
+			}
+			if ((occurrence.symbol_roles & scip.SymbolRole.Definition) === 0)
+				continue;
+			const span: TextSpan | null = this.convertSCIPRangeToTextSpan(
+				occurrence.range,
 			);
+			if (!span) continue;
+			const pos: Position = span.start;
 
-			// If not found in current document, search globally across all documents
-			if (!symbolInfo) {
-				symbolInfo = this.findSymbolGlobally(occurrence.symbol);
-			}
-
-			const doc: string[] = [];
-			// Add documentation if available
-			if (symbolInfo?.documentation) {
-				doc.push(...symbolInfo.documentation);
-			}
-			if (occurrence.override_documentation) {
-				doc.push(...occurrence.override_documentation);
-			}
-
-			if (doc.length === 0) continue;
-
-			const tokenInfo: TokenInfo = {
-				meta: [
-					{
-						type: "hover",
-						content: occurrence.symbol,
-						documentation: doc.join("\n"),
-					},
-				],
-				span,
-			};
-
-			tokenInfos.push(tokenInfo);
+			symbolDefSpan[occurrence.symbol] = pos;
 		}
 
-		console.log(`  🎯 Generated ${tokenInfos.length} hover tokens`);
-		return tokenInfos;
+		const infos: TokenInfo[] = [];
+		for (const occurrence of document.occurrences) {
+			if (!(occurrence.symbol in symbolMap)) {
+				continue;
+			}
+			const sym = symbolMap[occurrence.symbol];
+			const span: TextSpan | null = this.convertSCIPRangeToTextSpan(
+				occurrence.range,
+			);
+			if (!span) continue;
+			const meta: MetaInfo[] = [];
+
+			// Resolve complete documentation with priority hierarchy
+			const documentation = this.resolveDocumentation(occurrence, sym);
+			if (documentation) {
+				meta.push({
+					type: "hover",
+					content: occurrence.symbol,
+					documentation,
+				});
+			}
+
+			if (occurrence.symbol in symbolDefSpan) {
+				meta.push({
+					type: "definition",
+					filePath: fileIR.relativePath,
+					pos: symbolDefSpan[occurrence.symbol],
+				});
+			}
+
+			infos.push({
+				meta,
+				span,
+			});
+		}
+
+		return infos;
 	}
 
 	/**
-	 * Find symbol information across all documents in the SCIP index
+	 * Resolve documentation with priority:
+	 * 1. override_documentation
+	 * 2. signature_documentation
+	 * 3. documentation
+	 *
+	 * All available documentation is preserved and separated by newlines.
 	 */
-	private findSymbolGlobally(
-		symbolName: string,
-	): scip.SymbolInformation | undefined {
-		if (!this.scipIndex?.documents) {
-			return undefined;
+	private resolveDocumentation(
+		occurrence: scip.Occurrence,
+		symbolInfo: scip.SymbolInformation,
+	): string {
+		const docParts: string[] = [];
+
+		if (
+			occurrence.override_documentation &&
+			occurrence.override_documentation.length > 0
+		) {
+			docParts.push(...occurrence.override_documentation);
 		}
 
-		// Search through all documents for the symbol
-		for (const doc of this.scipIndex.documents) {
-			if (!doc.symbols) continue;
-
-			const symbolInfo = doc.symbols.find(
-				(sym) => sym.symbol === symbolName,
-			);
-			if (symbolInfo) {
-				console.log(
-					`  🌍 Found symbol in external document: ${doc.relative_path}`,
-				);
-				return symbolInfo;
-			}
+		if (
+			symbolInfo.has_signature_documentation &&
+			symbolInfo.signature_documentation?.text
+		) {
+			const signature = symbolInfo.signature_documentation.text.trim();
+			const language =
+				symbolInfo.signature_documentation.language || "text";
+			docParts.push(`\`\`\`${language}\n${signature}\n\`\`\``);
 		}
 
-		return undefined;
+		if (symbolInfo.documentation && symbolInfo.documentation.length > 0) {
+			docParts.push(...symbolInfo.documentation);
+		}
+
+		return docParts.join("\n\n"); // Separate different documentation types with double newlines
 	}
 
 	private convertSCIPRangeToTextSpan(range: number[]): {
