@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    {{#cssFiles}}
+    <link rel="stylesheet" href="{{this}}">
+    {{/cssFiles}}
+    {{#customCSS}}
+    <link rel="stylesheet" href="{{customCSS}}">
+    {{/customCSS}}
+</head>
+<body class="{{theme}}-theme">
+    <div class="container">
+        {{{content}}}
+    </div>
+
+    {{#if features.hoverDocumentation}}
+    <div class="hover-tooltip" id="tooltip">
+        <div class="symbol-name" id="tooltip-symbol"></div>
+        <div class="documentation" id="tooltip-docs"></div>
+    </div>
+    {{/if}}
+
+    <script>
+        const tooltip = document.getElementById('tooltip');
+        const tooltipSymbol = document.getElementById('tooltip-symbol');
+        const tooltipDocs = document.getElementById('tooltip-docs');
+        let hideTimeout;
+
+        function parseMarkdown(text) {
+            if (!text) return '';
+            return text;
+        }
+
+        {{#if features.hoverDocumentation}}
+        function showTooltip(element, content, documentation) {
+            clearTimeout(hideTimeout);
+
+            tooltipSymbol.textContent = content;
+            tooltipDocs.innerHTML = parseMarkdown(documentation || '');
+
+            const rect = element.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+
+            let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            let top = rect.top - tooltipRect.height - 10;
+
+            if (left < 10) left = 10;
+            if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10;
+            }
+            if (top < 10) {
+                top = rect.bottom + 10;
+            }
+
+            tooltip.style.left = left + window.scrollX + 'px';
+            tooltip.style.top = top + window.scrollY + 'px';
+            tooltip.classList.add('visible');
+        }
+
+        function hideTooltip() {
+            hideTimeout = setTimeout(() => {
+                tooltip.classList.remove('visible');
+            }, 100);
+        }
+        {{/if}}
+
+        // Add event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            {{#if features.hoverDocumentation}}
+            const hoverableElements = document.querySelectorAll('[data-hover-content]');
+            hoverableElements.forEach(function(element) {
+                const content = element.getAttribute('data-hover-content');
+                const documentation = element.getAttribute('data-hover-documentation');
+
+                element.addEventListener('mouseenter', function(e) {
+                    showTooltip(e.target, content, documentation);
+                });
+
+                element.addEventListener('mouseleave', hideTooltip);
+            });
+            {{/if}}
+
+            {{#if features.definitionJumping}}
+            const clickableElements = document.querySelectorAll('[data-definition-file]');
+            clickableElements.forEach(function(element) {
+                element.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const definitionFile = element.getAttribute('data-definition-file');
+                    const definitionLine = parseInt(element.getAttribute('data-definition-line') || '0');
+                    const definitionColumn = parseInt(element.getAttribute('data-definition-column') || '0');
+
+                    if (definitionFile && definitionLine >= 0) {
+                        jumpToDefinition(definitionFile, definitionLine, definitionColumn);
+                    }
+                });
+            });
+            {{/if}}
+
+            document.addEventListener('click', hideTooltip);
+        });
+
+        {{#if features.definitionJumping}}
+        function jumpToDefinition(filePath, line, column) {
+            var allElements = document.querySelectorAll('[data-definition-line]');
+            var bestMatch = null;
+            var bestDistance = Infinity;
+
+            for (var i = 0; i < allElements.length; i++) {
+                var element = allElements[i];
+                var elementLine = parseInt(element.getAttribute('data-definition-line') || '0');
+                var elementColumn = parseInt(element.getAttribute('data-definition-column') || '0');
+                var elementFile = element.getAttribute('data-definition-file');
+
+                if (elementFile === filePath && elementLine === line) {
+                    var columnDistance = Math.abs(elementColumn - column);
+                    if (columnDistance < bestDistance) {
+                        bestDistance = columnDistance;
+                        bestMatch = element;
+                    }
+                }
+            }
+
+            if (bestMatch) {
+                bestMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                highlightDefinition(bestMatch);
+                return;
+            }
+
+            showNotification('Definition not found', 'warning');
+        }
+
+        function highlightDefinition(element) {
+            if (!element || !element.classList) {
+                console.warn('Invalid element for highlight:', element);
+                return;
+            }
+
+            document.querySelectorAll('.definition-highlight').forEach(function(el) {
+                el.classList.remove('definition-highlight');
+            });
+
+            element.classList.add('definition-highlight');
+
+            setTimeout(function() {
+                if (element && element.classList) {
+                    element.classList.remove('definition-highlight');
+                }
+            }, 3000);
+        }
+
+        function showNotification(message, type) {
+            type = type || 'info';
+            const notification = document.createElement('div');
+            notification.className = 'notification notification-' + type;
+            notification.textContent = message;
+
+            var bgColor = type === 'info' ? '#2196f3' : '#ff9800';
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: ' + bgColor + '; color: white; padding: 12px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000; font-family: "Segoe UI", sans-serif; font-size: 14px; opacity: 0; transform: translateY(-20px); transition: all 0.3s ease;';
+
+            document.body.appendChild(notification);
+
+            setTimeout(function() {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateY(0)';
+            }, 10);
+
+            setTimeout(function() {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-20px)';
+                setTimeout(function() {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+        {{/if}}
+    </script>
+</body>
+</html>

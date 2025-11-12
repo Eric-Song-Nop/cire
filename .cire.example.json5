@@ -48,4 +48,20 @@
     provider: "scip",                 // LSP 提供者
     // 支持的提供者: scip, 未来可能支持 tsserver, pylsp 等
   },
+
+  // 模板配置（可选）
+  template: {
+    layout: "default",                // 布局模板: "default" | "minimal"
+    theme: "light",                   // 主题: "light" | "dark" | "auto"
+    // customCSS: "./custom.css",      // 自定义 CSS 文件路径（可选）
+  },
+
+  // 功能开关（可选）
+  features: {
+    syntaxHighlighting: true,         // 启用语法高亮
+    hoverDocumentation: true,         // 启用 hover 文档显示
+    definitionJumping: true,          // 启用点击跳转到定义
+    commentMarkdown: true,            // 启用注释转 Markdown 功能
+    navigationIndex: false,           // 启用导航索引页面
+  },
 }

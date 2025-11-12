@@ -145,6 +145,7 @@ async function runSingleFileMode(options: any): Promise<void> {
 	const config: WorkflowConfig = {
 		syntaxHighlighting: options.highlight,
 		hoverDocumentation: options.hover && !!options.scip,
+		definitionJumping: !!options.scip, // Enable definition jumping if SCIP is available
 		commentToMarkdown: options.commentMarkdown,
 		scipIndexPath: options.scip,
 		language: options.language,

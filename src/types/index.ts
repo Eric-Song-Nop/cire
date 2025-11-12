@@ -34,6 +34,20 @@ export interface CireConfig {
 		indexPath?: string; // Path to LSIF/SCIP index file
 		provider?: "lsif" | "scip";
 	};
+	// Template configuration
+	template?: {
+		layout?: string; // Layout template name ('default' | 'minimal')
+		theme?: string; // Theme name ('light' | 'dark' | 'auto')
+		customCSS?: string; // Path to custom CSS file
+	};
+	// Feature flags
+	features?: {
+		syntaxHighlighting?: boolean; // Enable syntax highlighting
+		hoverDocumentation?: boolean; // Enable hover documentation
+		definitionJumping?: boolean; // Enable click-to-definition functionality
+		commentMarkdown?: boolean; // Enable comment-to-markdown conversion
+		navigationIndex?: boolean; // Enable navigation index generation
+	};
 }
 
 // Intermediate representation for a file
