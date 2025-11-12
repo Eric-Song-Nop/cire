@@ -49,16 +49,21 @@ class HTMLGenerator implements DocGenerator {
 	}
 
 	/**
-	 * Extract token information including classes and hover data
+	 * Extract token information including classes, hover data, and definition info
 	 */
 	private extractTokenInfo(meta: TokenInfo["meta"]): {
 		classes: string[];
 		hoverContent?: string;
 		hoverDocumentation?: string;
+		definitionInfo?: {
+			filePath: string;
+			pos: Position;
+		};
 	} {
 		const classes: string[] = [];
 		let hoverContent: string | undefined;
 		let hoverDocumentation: string | undefined;
+		let definitionInfo: { filePath: string; pos: Position } | undefined;
 
 		meta.forEach((m) => {
 			match(m)
@@ -81,7 +86,13 @@ class HTMLGenerator implements DocGenerator {
 						}
 					}
 				})
-				.with({ type: "definition" }, () => {})
+				.with({ type: "definition" }, (md) => {
+					classes.push("token-clickable", "token-definition");
+					definitionInfo = {
+						filePath: md.filePath,
+						pos: md.pos,
+					};
+				})
 				.with({ type: "comment" }, () => {})
 				.exhaustive();
 		});
@@ -90,6 +101,7 @@ class HTMLGenerator implements DocGenerator {
 			classes,
 			hoverContent,
 			hoverDocumentation,
+			definitionInfo,
 		};
 	}
 
@@ -408,7 +420,11 @@ class HTMLGenerator implements DocGenerator {
 			const tokenText = sourceContent.slice(tokenStart, tokenEnd);
 			const tokenInfo = this.extractTokenInfo(token.meta);
 
-			if (tokenInfo.classes.length > 0 || tokenInfo.hoverContent) {
+			if (
+				tokenInfo.classes.length > 0 ||
+				tokenInfo.hoverContent ||
+				tokenInfo.definitionInfo
+			) {
 				const classAttr =
 					tokenInfo.classes.length > 0
 						? ` class="${tokenInfo.classes.join(" ")}"`
@@ -419,6 +435,11 @@ class HTMLGenerator implements DocGenerator {
 					if (tokenInfo.hoverDocumentation) {
 						dataAttrs += ` data-hover-documentation="${this.escapeHtml(tokenInfo.hoverDocumentation)}"`;
 					}
+				}
+				if (tokenInfo.definitionInfo) {
+					dataAttrs += ` data-definition-file="${this.escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
+					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
+					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
 				}
 				result += `<span${classAttr}${dataAttrs}>${this.escapeHtml(tokenText)}</span>`;
 			} else {
@@ -476,7 +497,11 @@ class HTMLGenerator implements DocGenerator {
 			const tokenText = sourceContent.slice(tokenStart, tokenEnd);
 			const tokenInfo = this.extractTokenInfo(token.meta);
 
-			if (tokenInfo.classes.length > 0 || tokenInfo.hoverContent) {
+			if (
+				tokenInfo.classes.length > 0 ||
+				tokenInfo.hoverContent ||
+				tokenInfo.definitionInfo
+			) {
 				const classAttr =
 					tokenInfo.classes.length > 0
 						? ` class="${tokenInfo.classes.join(" ")}"`
@@ -488,6 +513,11 @@ class HTMLGenerator implements DocGenerator {
 					if (tokenInfo.hoverDocumentation) {
 						dataAttrs += ` data-hover-documentation="${this.escapeHtml(tokenInfo.hoverDocumentation)}"`;
 					}
+				}
+				if (tokenInfo.definitionInfo) {
+					dataAttrs += ` data-definition-file="${this.escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
+					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
+					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
 				}
 
 				result += `<span${classAttr}${dataAttrs}>${this.escapeHtml(tokenText)}</span>`;
@@ -581,24 +611,165 @@ class HTMLGenerator implements DocGenerator {
             }, 100);
         }
 
-        // Add hover listeners to all hoverable tokens
-        document.addEventListener('DOMContentLoaded', () => {
+        // Add hover and click listeners to all interactive tokens
+        document.addEventListener('DOMContentLoaded', function() {
             const hoverableElements = document.querySelectorAll('[data-hover-content]');
+            const clickableElements = document.querySelectorAll('[data-definition-file]');
 
-            hoverableElements.forEach(element => {
+            // Setup hover functionality
+            hoverableElements.forEach(function(element) {
                 const content = element.getAttribute('data-hover-content');
                 const documentation = element.getAttribute('data-hover-documentation');
 
-                element.addEventListener('mouseenter', (e) => {
+                element.addEventListener('mouseenter', function(e) {
                     showTooltip(e.target, content, documentation);
                 });
 
                 element.addEventListener('mouseleave', hideTooltip);
             });
 
+            // Setup click-to-definition functionality
+            clickableElements.forEach(function(element) {
+                element.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const definitionFile = element.getAttribute('data-definition-file');
+                    const definitionLine = parseInt(element.getAttribute('data-definition-line') || '0');
+                    const definitionColumn = parseInt(element.getAttribute('data-definition-column') || '0');
+
+                    if (definitionFile && definitionLine >= 0) {
+                        jumpToDefinition(definitionFile, definitionLine, definitionColumn);
+                    }
+                });
+            });
+
             // Hide tooltip when clicking elsewhere
             document.addEventListener('click', hideTooltip);
         });
+
+        function jumpToDefinition(filePath, line, column) {
+            // For now, we assume definition is in the same file
+            // TODO: Implement proper cross-file navigation based on project structure
+            console.log('Jumping to definition in:', filePath, 'line:', line, 'column:', column);
+
+            // Try to find the element with definition data attributes that matches
+            var allElements = document.querySelectorAll('[data-definition-line]');
+            var bestMatch = null;
+            var bestDistance = Infinity;
+
+            for (var i = 0; i < allElements.length; i++) {
+                var element = allElements[i];
+                var elementLine = parseInt(element.getAttribute('data-definition-line') || '0');
+                var elementColumn = parseInt(element.getAttribute('data-definition-column') || '0');
+                var elementFile = element.getAttribute('data-definition-file');
+
+                // Check if this is the definition we're looking for
+                if (elementFile === filePath && elementLine === line) {
+                    // Simple distance calculation for column
+                    var columnDistance = Math.abs(elementColumn - column);
+                    if (columnDistance < bestDistance) {
+                        bestDistance = columnDistance;
+                        bestMatch = element;
+                    }
+                }
+            }
+
+            if (bestMatch) {
+                // Found the exact definition element
+                bestMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                highlightDefinition(bestMatch);
+                return;
+            }
+
+            // Fallback: try to find any element on the target line
+            var codeElements = document.querySelectorAll('pre code');
+            var currentLine = 0;
+
+            for (var j = 0; j < codeElements.length; j++) {
+                var codeElement = codeElements[j];
+                var lines = codeElement.textContent.split('\\n');
+
+                if (currentLine + lines.length > line) {
+                    // Found the code block containing the target line
+                    var relativeLine = line - currentLine;
+
+                    // Find spans in this code block
+                    var spans = codeElement.querySelectorAll('span');
+                    for (var k = 0; k < spans.length; k++) {
+                        var span = spans[k];
+                        // Simple heuristic: check if span has any definition-related data
+                        if (span.getAttribute('data-definition-file') === filePath) {
+                            span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            highlightDefinition(span);
+                            return;
+                        }
+                    }
+
+                    // If no specific span found, scroll to the code block
+                    codeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    highlightDefinition(codeElement);
+                    return;
+                }
+
+                currentLine += lines.length;
+            }
+
+            showNotification('Definition not found', 'warning');
+        }
+
+        function highlightDefinition(element) {
+            // Check if element is valid
+            if (!element || !element.classList) {
+                console.warn('Invalid element for highlight:', element);
+                return;
+            }
+
+            // Remove existing highlights
+            document.querySelectorAll('.definition-highlight').forEach(function(el) {
+                el.classList.remove('definition-highlight');
+            });
+
+            // Add highlight class
+            element.classList.add('definition-highlight');
+
+            // Remove highlight after 3 seconds
+            setTimeout(function() {
+                if (element && element.classList) {
+                    element.classList.remove('definition-highlight');
+                }
+            }, 3000);
+        }
+
+        function showNotification(message, type) {
+            type = type || 'info';
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = 'notification notification-' + type;
+            notification.textContent = message;
+
+            var bgColor = type === 'info' ? '#2196f3' : (type === 'warning' ? '#ff9800' : '#4caf50');
+            notification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: ' + bgColor + '; color: white; padding: 12px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000; font-family: "Segoe UI", sans-serif; font-size: 14px; opacity: 0; transform: translateY(-20px); transition: all 0.3s ease;';
+
+            document.body.appendChild(notification);
+
+            // Animate in
+            setTimeout(function() {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateY(0)';
+            }, 10);
+
+            // Remove after 4 seconds
+            setTimeout(function() {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-20px)';
+                setTimeout(function() {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
     </script>
 </body>
 </html>`;
