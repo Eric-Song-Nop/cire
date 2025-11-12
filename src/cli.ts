@@ -10,7 +10,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { ConfigLoader } from "./config/config-loader";
 import { ProjectBuilder } from "./core/ProjectBuilder";
-import { type WorkflowConfig, WorkflowManager } from "./core/WorkflowManager";
+import { WorkflowManager } from "./core/WorkflowManager";
 import type { CireConfig } from "./types";
 import { logger } from "./utils/logger";
 
@@ -141,18 +141,37 @@ async function runSingleFileMode(options: any): Promise<void> {
 		process.exit(1);
 	}
 
-	// Create workflow configuration
-	const config: WorkflowConfig = {
-		syntaxHighlighting: options.highlight,
-		hoverDocumentation: options.hover && !!options.scip,
-		definitionJumping: !!options.scip, // Enable definition jumping if SCIP is available
-		commentToMarkdown: options.commentMarkdown,
-		scipIndexPath: options.scip,
-		language: options.language,
+	// Create complete CireConfig for single file mode
+	const cireConfig: CireConfig = {
+		name: "Cire Single File",
+		version: "1.0.0",
+		description: "Single file processing",
+		logLevel: options.verbose ? "info" : "error",
+		input: {
+			root: path.dirname(inputFile),
+			include: [path.basename(inputFile)],
+			language: options.language,
+		},
+		output: {
+			directory: path.dirname(outputFile),
+		},
+		lsp: {
+			indexPath: options.scip,
+		},
+		features: {
+			syntaxHighlighting: options.highlight,
+			hoverDocumentation: options.hover && !!options.scip,
+			definitionJumping: !!options.scip,
+			commentMarkdown: options.commentMarkdown,
+		},
+		template: {
+			layout: "default",
+			theme: "light",
+		},
 	};
 
-	// Initialize workflow manager
-	const workflow = new WorkflowManager(config);
+	// Initialize workflow manager with complete config
+	const workflow = new WorkflowManager(cireConfig);
 
 	if (options.verbose) {
 		console.log(
@@ -162,16 +181,29 @@ async function runSingleFileMode(options: any): Promise<void> {
 		console.log(chalk.gray(`📝 Output: ${outputFile}`));
 		console.log(chalk.gray(`🔤 Language: ${options.language}`));
 		console.log(
-			chalk.gray(`✨ Syntax Highlighting: ${config.syntaxHighlighting}`),
+			chalk.gray(
+				`✨ Syntax Highlighting: ${cireConfig.features?.syntaxHighlighting}`,
+			),
 		);
 		console.log(
-			chalk.gray(`💬 Comment-to-Markdown: ${config.commentToMarkdown}`),
+			chalk.gray(
+				`💬 Comment-to-Markdown: ${cireConfig.features?.commentMarkdown}`,
+			),
 		);
 		console.log(
-			chalk.gray(`🔍 Hover Documentation: ${config.hoverDocumentation}`),
+			chalk.gray(
+				`🔍 Hover Documentation: ${cireConfig.features?.hoverDocumentation}`,
+			),
 		);
-		if (config.scipIndexPath) {
-			console.log(chalk.gray(`📊 SCIP Index: ${config.scipIndexPath}`));
+		console.log(
+			chalk.gray(
+				`🔗 Definition Jumping: ${cireConfig.features?.definitionJumping}`,
+			),
+		);
+		if (cireConfig.lsp?.indexPath) {
+			console.log(
+				chalk.gray(`📊 SCIP Index: ${cireConfig.lsp?.indexPath}`),
+			);
 		}
 
 		const stats = workflow.getStats();
@@ -214,11 +246,14 @@ async function runSingleFileMode(options: any): Promise<void> {
 	if (stats.syntaxHighlighter) {
 		console.log(chalk.green(`  ✓ Syntax highlighting (Tree-sitter)`));
 	}
-	if (config.commentToMarkdown) {
+	if (cireConfig.features?.commentMarkdown) {
 		console.log(chalk.green(`  ✓ Block comment to Markdown conversion`));
 	}
-	if (stats.scipAnalyzer) {
+	if (cireConfig.features?.hoverDocumentation) {
 		console.log(chalk.green(`  ✓ Hover documentation (SCIP)`));
+	}
+	if (cireConfig.features?.definitionJumping) {
+		console.log(chalk.green(`  ✓ Definition jumping (SCIP)`));
 	}
 	console.log(chalk.green(`  ✓ Token processing pipeline`));
 	console.log(chalk.green(`  ✓ Modern HTML output`));

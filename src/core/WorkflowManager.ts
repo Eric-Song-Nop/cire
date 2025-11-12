@@ -5,63 +5,25 @@ import { HTMLGenerator } from "../generator/HTMLGenerator";
 import { CommentMergePass, MergeTokenPass, SortTokenPass } from "../passes";
 import type { CireConfig, FileIR, TokenInfo } from "../types";
 
-export interface WorkflowConfig {
-	syntaxHighlighting: boolean;
-	hoverDocumentation: boolean;
-	definitionJumping: boolean;
-	commentToMarkdown: boolean;
-	scipIndexPath?: string;
-	language?: string;
-}
-
 export class WorkflowManager {
 	private tsHighlighter: TSHighLighter;
 	private scipAnalyzer: SCIPAnalyzer | null = null;
 	private commentAnalyzer: CommentAnalyzer;
 	private htmlGenerator: HTMLGenerator;
-	private config: WorkflowConfig;
+	private config: CireConfig;
 
-	constructor(config: WorkflowConfig, cireConfig?: CireConfig) {
+	constructor(config: CireConfig) {
 		this.config = config;
-		this.tsHighlighter = new TSHighLighter(config.language);
+
+		// Initialize components
+		this.tsHighlighter = new TSHighLighter(config.input.language);
 		this.commentAnalyzer = new CommentAnalyzer();
+		this.htmlGenerator = new HTMLGenerator(config);
 
-		// Create a default config if none provided
-		const defaultCireConfig: CireConfig = {
-			name: "Cire Project",
-			version: "1.0.0",
-			description: "Static website generated with Cire",
-			logLevel: "error",
-			input: {
-				root: "src",
-				include: ["**/*.ts"],
-				language: "typescript",
-			},
-			output: {
-				directory: "dist",
-			},
-			template: {
-				layout: "default",
-				theme: "light",
-			},
-			features: {
-				syntaxHighlighting: config.syntaxHighlighting,
-				hoverDocumentation: config.hoverDocumentation,
-				definitionJumping: true, // 默认启用，但会被 cireConfig 覆盖
-				commentMarkdown: config.commentToMarkdown,
-				navigationIndex: false,
-			},
-		};
-
-		this.htmlGenerator = new HTMLGenerator(cireConfig || defaultCireConfig);
-
-		// Initialize SCIP analyzer if either hover documentation or definition jumping is enabled and path is provided
+		// Initialize SCIP analyzer if SCIP index path is provided
 		// Note: SCIPAnalyzer provides both hover documentation AND definition jumping functionality
-		if (
-			(config.hoverDocumentation || config.definitionJumping) &&
-			config.scipIndexPath
-		) {
-			this.scipAnalyzer = new SCIPAnalyzer(config.scipIndexPath);
+		if (config.lsp?.indexPath) {
+			this.scipAnalyzer = new SCIPAnalyzer(config.lsp.indexPath);
 		}
 	}
 
@@ -74,7 +36,7 @@ export class WorkflowManager {
 		// Step 1: Extract syntax highlighting tokens
 		const allTokens: TokenInfo[] = [];
 
-		if (this.config.syntaxHighlighting) {
+		if (this.config.features?.syntaxHighlighting ?? true) {
 			console.log("  → Extracting syntax highlighting tokens...");
 			const highlightTokens = this.tsHighlighter.analyze(
 				fileIR,
@@ -85,7 +47,7 @@ export class WorkflowManager {
 		}
 
 		// Step 2: Extract comment tokens
-		if (this.config.commentToMarkdown) {
+		if (this.config.features?.commentMarkdown ?? true) {
 			console.log("  → Extracting comment tokens...");
 			const commentTokens = this.commentAnalyzer.analyze(
 				fileIR,
@@ -97,7 +59,8 @@ export class WorkflowManager {
 
 		// Step 3: Extract definition and hover documentation tokens from SCIP
 		if (
-			(this.config.hoverDocumentation || this.config.definitionJumping) &&
+			((this.config.features?.hoverDocumentation ?? false) ||
+				(this.config.features?.definitionJumping ?? false)) &&
 			this.scipAnalyzer
 		) {
 			const scipTokens = this.scipAnalyzer.analyze(fileIR, projectRoot);
@@ -147,7 +110,9 @@ export class WorkflowManager {
 	 */
 	getStats(): { syntaxHighlighter: boolean; scipAnalyzer: boolean } {
 		return {
-			syntaxHighlighter: !!this.config.syntaxHighlighting,
+			syntaxHighlighter: !!(
+				this.config.features?.syntaxHighlighting ?? true
+			),
 			scipAnalyzer: !!this.scipAnalyzer,
 		};
 	}

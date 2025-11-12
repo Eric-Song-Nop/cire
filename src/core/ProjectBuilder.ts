@@ -4,7 +4,7 @@ import { glob } from "glob";
 import type { CireConfig, FileIR } from "../types";
 import { logger } from "../utils/logger";
 import { NavigationGenerator } from "../utils/navigation-generator";
-import { type WorkflowConfig, WorkflowManager } from "./WorkflowManager";
+import { WorkflowManager } from "./WorkflowManager";
 
 export interface BuildStats {
 	totalFiles: number;
@@ -127,20 +127,7 @@ export class ProjectBuilder {
 	 * Create WorkflowManager
 	 */
 	private createWorkflowManager(config: CireConfig): WorkflowManager {
-		const workflowConfig: WorkflowConfig = {
-			syntaxHighlighting: config.features?.syntaxHighlighting ?? true,
-			hoverDocumentation:
-				(config.features?.hoverDocumentation ?? true) &&
-				!!config.lsp?.indexPath,
-			definitionJumping:
-				(config.features?.definitionJumping ?? true) &&
-				!!config.lsp?.indexPath,
-			commentToMarkdown: config.features?.commentMarkdown ?? true,
-			scipIndexPath: config.lsp?.indexPath,
-			language: config.input.language,
-		};
-
-		return new WorkflowManager(workflowConfig, config);
+		return new WorkflowManager(config);
 	}
 
 	/**
