@@ -26,8 +26,8 @@ class HTMLGenerator implements DocGenerator {
 	constructor(config: CireConfig) {
 		this.config = config;
 		const defaultTemplateDir = path.join(__dirname, "../../templates");
-		const customTemplateDir = config.template?.templateDir;
-		this.templateEngine = new HandlebarsTemplateEngine(defaultTemplateDir, customTemplateDir);
+		const templateDir = config.template?.templateDir || defaultTemplateDir;
+		this.templateEngine = new HandlebarsTemplateEngine(templateDir);
 	}
 	/**
 	 * Convert position to character offset in source text
@@ -425,7 +425,7 @@ class HTMLGenerator implements DocGenerator {
 
 			if (lineTokens.length === 0) {
 				// No tokens for this line, just add the escaped line
-				result += this.escapeHtml(line) + "\n";
+				result += `${this.escapeHtml(line)}\n`;
 			} else {
 				// Process tokens on this line
 				const lineContent = this.processTokensOnLine(
@@ -433,7 +433,14 @@ class HTMLGenerator implements DocGenerator {
 					lineNum,
 					lineTokens,
 				);
-				result += lineContent + "\n";
+				result += `${lineContent}\n`;
+
+				// Check if the last token spans multiple lines and skip already processed lines
+				const lastToken = lineTokens[lineTokens.length - 1];
+				const lastTokenEndLine = lastToken.span.end.line;
+				if (lastTokenEndLine > lineNum) {
+					lineNum = lastTokenEndLine;
+				}
 			}
 		}
 
