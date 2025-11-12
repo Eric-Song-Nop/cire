@@ -37,7 +37,7 @@ export interface CireConfig {
 	// Template configuration
 	template?: {
 		layout?: string; // Layout template name ('default' | 'minimal')
-		theme?: string; // Theme name ('light' | 'dark' | 'auto')
+		templateDir?: string; // Custom template directory path
 		customCSS?: string; // Path to custom CSS file
 	};
 	// Feature flags

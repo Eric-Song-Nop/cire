@@ -166,7 +166,6 @@ async function runSingleFileMode(options: any): Promise<void> {
 		},
 		template: {
 			layout: "default",
-			theme: "light",
 		},
 	};
 

@@ -23,8 +23,7 @@ export interface TemplateData {
 		navigationIndex: boolean;
 	};
 
-	// Theme and layout
-	theme?: string;
+	// Layout
 	layout?: string;
 }
 
@@ -33,7 +32,7 @@ export interface TemplateData {
  */
 export interface TemplateConfig {
 	layout: string;
-	theme?: string;
+	templateDir?: string;
 	customCSS?: string;
 }
 
@@ -42,13 +41,15 @@ export interface TemplateConfig {
  */
 export class HandlebarsTemplateEngine {
 	private handlebars: typeof Handlebars;
-	private templateDir: string;
+	private defaultTemplateDir: string;
+	private customTemplateDir?: string;
 	private compiledTemplates = new Map<string, HandlebarsTemplateDelegate>();
 	private partialsLoaded = false;
 
-	constructor(templateDir: string) {
+	constructor(defaultTemplateDir: string, customTemplateDir?: string) {
 		this.handlebars = Handlebars.create();
-		this.templateDir = templateDir;
+		this.defaultTemplateDir = defaultTemplateDir;
+		this.customTemplateDir = customTemplateDir;
 		this.registerHelpers();
 	}
 
@@ -102,25 +103,35 @@ export class HandlebarsTemplateEngine {
 
 	/**
 	 * Load all partials from the partials directory
+	 * Custom partials directory takes priority over default one
 	 */
 	private loadPartials() {
 		if (this.partialsLoaded) return;
 
-		const partialsDir = path.join(this.templateDir, "partials");
+		// Helper function to load partials from a directory
+		const loadPartialsFromDir = (partialsDir: string) => {
+			if (fs.existsSync(partialsDir)) {
+				const partialFiles = fs.readdirSync(partialsDir);
+				partialFiles.forEach((file) => {
+					if (file.endsWith(".hbs")) {
+						const name = path.basename(file, ".hbs");
+						const content = fs.readFileSync(
+							path.join(partialsDir, file),
+							"utf-8",
+						);
+						this.handlebars.registerPartial(name, content);
+					}
+				});
+			}
+		};
 
-		if (fs.existsSync(partialsDir)) {
-			const partialFiles = fs.readdirSync(partialsDir);
-			partialFiles.forEach((file) => {
-				if (file.endsWith(".hbs")) {
-					const name = path.basename(file, ".hbs");
-					const content = fs.readFileSync(
-						path.join(partialsDir, file),
-						"utf-8",
-					);
-					this.handlebars.registerPartial(name, content);
-				}
-			});
+		// Load from custom template directory first (higher priority)
+		if (this.customTemplateDir) {
+			loadPartialsFromDir(path.join(this.customTemplateDir, "partials"));
 		}
+
+		// Load from default template directory (fallback)
+		loadPartialsFromDir(path.join(this.defaultTemplateDir, "partials"));
 
 		this.partialsLoaded = true;
 	}
@@ -141,24 +152,51 @@ export class HandlebarsTemplateEngine {
 
 	/**
 	 * Get or compile a template
+	 * Custom template directory takes priority over default one
 	 */
 	private getCompiledTemplate(
 		templateName: string,
 	): HandlebarsTemplateDelegate {
 		if (!this.compiledTemplates.has(templateName)) {
-			const templatePath = path.join(
-				this.templateDir,
-				"layouts",
-				`${templateName}.hbs`,
-			);
+			let templateContent: string | undefined;
+			let templatePath: string | undefined;
 
-			if (!fs.existsSync(templatePath)) {
+			// Try custom template directory first
+			if (this.customTemplateDir) {
+				templatePath = path.join(
+					this.customTemplateDir,
+					"layouts",
+					`${templateName}.hbs`,
+				);
+				if (fs.existsSync(templatePath)) {
+					templateContent = fs.readFileSync(templatePath, "utf-8");
+				}
+			}
+
+			// Fallback to default template directory
+			if (!templateContent) {
+				templatePath = path.join(
+					this.defaultTemplateDir,
+					"layouts",
+					`${templateName}.hbs`,
+				);
+				if (fs.existsSync(templatePath)) {
+					templateContent = fs.readFileSync(templatePath, "utf-8");
+				}
+			}
+
+			// If still not found, throw error
+			if (!templateContent) {
+				const searchPaths = [
+					this.customTemplateDir ? path.join(this.customTemplateDir, "layouts", `${templateName}.hbs`) : undefined,
+					path.join(this.defaultTemplateDir, "layouts", `${templateName}.hbs`)
+				].filter(Boolean).join(", ");
+
 				throw new Error(
-					`Template not found: ${templateName} (looked for ${templatePath})`,
+					`Template not found: ${templateName} (searched in: ${searchPaths})`,
 				);
 			}
 
-			const templateContent = fs.readFileSync(templatePath, "utf-8");
 			const compiled = this.handlebars.compile(templateContent);
 			this.compiledTemplates.set(templateName, compiled);
 		}
@@ -188,27 +226,55 @@ export class HandlebarsTemplateEngine {
 	 * Check if a template exists
 	 */
 	templateExists(templateName: string): boolean {
-		const templatePath = path.join(
-			this.templateDir,
+		// Check custom template directory first
+		if (this.customTemplateDir) {
+			const customTemplatePath = path.join(
+				this.customTemplateDir,
+				"layouts",
+				`${templateName}.hbs`,
+			);
+			if (fs.existsSync(customTemplatePath)) {
+				return true;
+			}
+		}
+
+		// Check default template directory
+		const defaultTemplatePath = path.join(
+			this.defaultTemplateDir,
 			"layouts",
 			`${templateName}.hbs`,
 		);
-		return fs.existsSync(templatePath);
+		return fs.existsSync(defaultTemplatePath);
 	}
 
 	/**
 	 * Get list of available layout templates
+	 * Custom templates take priority over default ones
 	 */
 	getAvailableLayouts(): string[] {
-		const layoutsDir = path.join(this.templateDir, "layouts");
+		const availableLayouts = new Set<string>();
 
-		if (!fs.existsSync(layoutsDir)) {
-			return [];
+		// Helper function to collect layouts from a directory
+		const collectLayoutsFromDir = (layoutsDir: string) => {
+			if (fs.existsSync(layoutsDir)) {
+				const files = fs.readdirSync(layoutsDir);
+				files
+					.filter((file) => file.endsWith(".hbs"))
+					.forEach((file) => {
+						const layoutName = path.basename(file, ".hbs");
+						availableLayouts.add(layoutName);
+					});
+			}
+		};
+
+		// Collect from custom template directory
+		if (this.customTemplateDir) {
+			collectLayoutsFromDir(path.join(this.customTemplateDir, "layouts"));
 		}
 
-		const files = fs.readdirSync(layoutsDir);
-		return files
-			.filter((file) => file.endsWith(".hbs"))
-			.map((file) => path.basename(file, ".hbs"));
+		// Collect from default template directory
+		collectLayoutsFromDir(path.join(this.defaultTemplateDir, "layouts"));
+
+		return Array.from(availableLayouts).sort();
 	}
 }
