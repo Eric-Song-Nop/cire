@@ -1,0 +1,18 @@
+<li class="tree-item">
+    {{#if this.children}}
+        <div class="tree-node directory">
+            <span class="tree-label">📁 {{this.name}}</span>
+        </div>
+        <ul class="tree-children">
+            {{#each this.children}}
+                {{> tree-node this}}
+            {{/each}}
+        </ul>
+    {{else}}
+        <div class="tree-node file">
+            <a href="{{this.relativePath}}" class="tree-link">
+                <span class="tree-label">{{this.name}}</span>
+            </a>
+        </div>
+    {{/if}}
+</li>
