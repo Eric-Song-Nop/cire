@@ -14,6 +14,21 @@ import { WorkflowManager } from "./core/WorkflowManager";
 import type { CireConfig } from "./types";
 import { logger } from "./utils/logger";
 
+/**
+ * CLI options interface for type safety
+ */
+interface CLIOptions {
+	input?: string;
+	output?: string;
+	config?: string;
+	scip?: string;
+	language?: string;
+	highlight?: boolean;
+	hover?: boolean;
+	commentMarkdown?: boolean;
+	verbose?: boolean;
+}
+
 const program = new Command();
 
 program
@@ -115,8 +130,14 @@ async function runProjectMode(config: CireConfig): Promise<void> {
 /**
  * Run in single file mode using WorkflowManager
  */
-async function runSingleFileMode(options: any): Promise<void> {
+async function runSingleFileMode(options: CLIOptions): Promise<void> {
 	// Resolve input file path
+	if (!options.input) {
+		console.error(
+			chalk.red.bold("❌ Input file is required for single file mode"),
+		);
+		process.exit(1);
+	}
 	const inputFile = path.resolve(options.input);
 
 	// Check if input file exists
@@ -150,7 +171,7 @@ async function runSingleFileMode(options: any): Promise<void> {
 		input: {
 			root: path.dirname(inputFile),
 			include: [path.basename(inputFile)],
-			language: options.language,
+			language: options.language || 'typescript',
 		},
 		output: {
 			directory: path.dirname(outputFile),
@@ -220,7 +241,7 @@ async function runSingleFileMode(options: any): Promise<void> {
 	// Create FileIR with relative path (for single file, just the filename)
 	const fileIR = {
 		relativePath: path.basename(inputFile),
-		language: options.language,
+		language: options.language || 'typescript',
 	};
 
 	// For single file mode, use input file's directory as projectRoot
@@ -261,7 +282,7 @@ async function runSingleFileMode(options: any): Promise<void> {
 /**
  * Auto-detect mode and run appropriate handler
  */
-async function autoDetectAndRun(options: any): Promise<void> {
+async function autoDetectAndRun(options: CLIOptions): Promise<void> {
 	// Check for common config files
 	const configFiles = [
 		options.config || ".cire.json5",

@@ -81,12 +81,14 @@ export class NavigationGenerator {
 			if (hasChildren) {
 				html += `${indent}  <ul class="tree-children">\n`;
 				// Sort: directories first, then files, both alphabetically
-				const sortedChildren = [...node.children!].sort((a, b) => {
-					if (a.type !== b.type) {
-						return a.type === "directory" ? -1 : 1;
-					}
-					return a.name.localeCompare(b.name);
-				});
+				const sortedChildren = [...(node.children || [])].sort(
+					(a, b) => {
+						if (a.type !== b.type) {
+							return a.type === "directory" ? -1 : 1;
+						}
+						return a.name.localeCompare(b.name);
+					},
+				);
 
 				for (const child of sortedChildren) {
 					html += this.generateTreeNodeHTML(child, level + 1);

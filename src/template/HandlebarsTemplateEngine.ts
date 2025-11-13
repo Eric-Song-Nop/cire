@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import type { HelperOptions } from "handlebars";
 import * as Handlebars from "handlebars";
 
 /**
@@ -69,7 +70,12 @@ export class HandlebarsTemplateEngine {
 		// Conditional helper
 		this.handlebars.registerHelper(
 			"ifEquals",
-			function (this: any, arg1: any, arg2: any, options: any) {
+			function (
+				this: unknown,
+				arg1: unknown,
+				arg2: unknown,
+				options: HelperOptions,
+			) {
 				return arg1 === arg2 ? options.fn(this) : options.inverse(this);
 			},
 		);
@@ -82,7 +88,7 @@ export class HandlebarsTemplateEngine {
 			},
 		);
 
-		this.handlebars.registerHelper("length", (array: any[]) => {
+		this.handlebars.registerHelper("length", (array: unknown[]) => {
 			return Array.isArray(array) ? array.length : 0;
 		});
 
@@ -96,7 +102,7 @@ export class HandlebarsTemplateEngine {
 		});
 
 		// JSON helper for debugging
-		this.handlebars.registerHelper("json", (obj: any) => {
+		this.handlebars.registerHelper("json", (obj: unknown) => {
 			return JSON.stringify(obj, null, 2);
 		});
 	}
@@ -213,7 +219,11 @@ export class HandlebarsTemplateEngine {
 			this.compiledTemplates.set(templateName, compiled);
 		}
 
-		return this.compiledTemplates.get(templateName)!;
+		const template = this.compiledTemplates.get(templateName);
+		if (!template) {
+			throw new Error(`Template "${templateName}" not found in cache`);
+		}
+		return template;
 	}
 
 	/**
