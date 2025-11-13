@@ -263,7 +263,7 @@ export class ProjectBuilder {
 				path.relative(config.input.root, file),
 			);
 
-			const navigationGenerator = new NavigationGenerator();
+			const navigationGenerator = new NavigationGenerator(config);
 			const navigationHTML = navigationGenerator.generateNavigationPage(
 				relativeFiles,
 				config,
