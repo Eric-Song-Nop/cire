@@ -88,7 +88,70 @@
 
         // Hide tooltip when clicking elsewhere
         document.addEventListener('click', hideTooltip);
+
+        // Initialize code block collapse functionality
+        initializeCodeCollapse();
     });
+
+    function initializeCodeCollapse() {
+        const codeBlocks = document.querySelectorAll('pre');
+
+        codeBlocks.forEach(function(pre) {
+            // Skip if already processed
+            if (pre.parentElement.classList.contains('code-container')) {
+                return;
+            }
+
+            // Create wrapper container
+            const container = document.createElement('div');
+            container.className = 'code-container expanded';
+
+            // Wrap the pre element
+            pre.parentNode.insertBefore(container, pre);
+            container.appendChild(pre);
+
+            // Create collapse button
+            const collapseBtn = document.createElement('button');
+            collapseBtn.className = 'code-collapse-btn';
+            collapseBtn.innerHTML = '<span class="collapse-icon"></span>Collapse';
+            collapseBtn.setAttribute('aria-label', 'Toggle code block collapse state');
+            collapseBtn.setAttribute('title', 'Click to collapse/expand code block');
+
+            // Add click handler
+            collapseBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const isCollapsed = container.classList.contains('collapsed');
+
+                if (isCollapsed) {
+                    // Expand
+                    container.classList.remove('collapsed');
+                    container.classList.add('expanded');
+                    collapseBtn.classList.remove('collapsed');
+                    collapseBtn.innerHTML = '<span class="collapse-icon"></span>Collapse';
+                    collapseBtn.setAttribute('title', 'Click to collapse code block');
+                } else {
+                    // Collapse
+                    container.classList.remove('expanded');
+                    container.classList.add('collapsed');
+                    collapseBtn.classList.add('collapsed');
+                    collapseBtn.innerHTML = '<span class="collapse-icon"></span>Expand';
+                    collapseBtn.setAttribute('title', 'Click to expand code block');
+                }
+            });
+
+            // Add button to container
+            container.appendChild(collapseBtn);
+
+            // Check if code block needs to be collapsed by default
+            const codeHeight = pre.offsetHeight;
+            if (codeHeight > 300) {
+                // Auto-collapse tall code blocks
+                collapseBtn.click();
+            }
+        });
+    }
 
     {{#if features.definitionJumping}}
     function jumpToDefinition(filePath, line, column) {
