@@ -44,18 +44,6 @@ class HTMLGenerator implements DocGenerator {
 	}
 
 	/**
-	 * Sort tokens by start position to ensure correct processing order
-	 */
-	private sortTokens(tokens: TokenInfo[]): TokenInfo[] {
-		return tokens.sort((a, b) => {
-			if (a.span.start.line !== b.span.start.line) {
-				return a.span.start.line - b.span.start.line;
-			}
-			return a.span.start.column - b.span.start.column;
-		});
-	}
-
-	/**
 	 * Escape HTML special characters to prevent rendering issues
 	 */
 	private escapeHtml(text: string): string {
@@ -176,8 +164,8 @@ class HTMLGenerator implements DocGenerator {
 
 		if (!hasCommentTokens) {
 			// Original method for backward compatibility
-			const sortedTokens = this.sortTokens(info);
-			return this.generateHighlightedHTML(sourceContent, sortedTokens);
+			// Tokens are already sorted by SortTokenPass
+			return this.generateHighlightedHTML(sourceContent, info);
 		}
 
 		// New Markdown-style rendering approach
@@ -305,25 +293,15 @@ class HTMLGenerator implements DocGenerator {
 	): string {
 		const lines = sourceContent.split("\n");
 
-		// Extract comment tokens and sort by position
-		const commentTokens = info
-			.filter((token) => token.meta.some((m) => m.type === "comment"))
-			.sort((a, b) => {
-				if (a.span.start.line !== b.span.start.line) {
-					return a.span.start.line - b.span.start.line;
-				}
-				return a.span.start.column - b.span.start.column;
-			});
+		// Extract comment tokens - already sorted by SortTokenPass
+		const commentTokens = info.filter((token) =>
+			token.meta.some((m) => m.type === "comment"),
+		);
 
-		// Get non-comment tokens for syntax highlighting
-		const nonCommentTokens = info
-			.filter((token) => !token.meta.some((m) => m.type === "comment"))
-			.sort((a, b) => {
-				if (a.span.start.line !== b.span.start.line) {
-					return a.span.start.line - b.span.start.line;
-				}
-				return a.span.start.column - b.span.start.column;
-			});
+		// Get non-comment tokens for syntax highlighting - already sorted by SortTokenPass
+		const nonCommentTokens = info.filter(
+			(token) => !token.meta.some((m) => m.type === "comment"),
+		);
 
 		const result: string[] = [];
 		let currentLine = 0;
@@ -466,12 +444,7 @@ class HTMLGenerator implements DocGenerator {
 			column: line.length,
 		});
 
-		// Sort tokens by position
-		lineTokens.sort((a, b) => {
-			const startA = this.positionToOffset(sourceContent, a.span.start);
-			const startB = this.positionToOffset(sourceContent, b.span.start);
-			return startA - startB;
-		});
+		// Tokens are already sorted by SortTokenPass - no need to sort again
 
 		let result = "";
 		let currentOffset = lineStartOffset;
