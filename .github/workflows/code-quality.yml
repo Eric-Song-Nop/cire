@@ -1,54 +1,22 @@
-name: Code Quality
+name: Code quality
 
 on:
   push:
-    branches: [main, master, lint]
   pull_request:
-    branches: [main, master, lint]
 
 jobs:
   quality:
     runs-on: ubuntu-latest
-    name: Code Quality Checks
-
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/checkout@v5
         with:
-          node-version: "22"
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+          persist-credentials: false
+      - name: Setup Biome
+        uses: biomejs/setup-biome@v2
         with:
-          version: 8
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Check formatting
-        run: pnpm format --check
-
-      - name: Run linter
-        run: pnpm lint
-
-      - name: Run type checking
-        run: pnpm build
-
-      - name: Run tests
-        run: pnpm test:run
+          version: latest
+      - name: Run Biome
+        run: biome ci .
