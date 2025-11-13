@@ -52,7 +52,7 @@
 	},
 	"devDependencies": {
 		"@antfu/ni": "^0.21.8",
-		"@biomejs/biome": "2.2.7",
+		"@biomejs/biome": "2.6.0",
 		"@commander-js/extra-typings": "^14.0.0",
 		"@types/google-protobuf": "^3.15.12",
 		"@types/json5": "^2.2.0",

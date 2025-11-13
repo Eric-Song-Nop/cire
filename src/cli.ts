@@ -171,7 +171,7 @@ async function runSingleFileMode(options: CLIOptions): Promise<void> {
 		input: {
 			root: path.dirname(inputFile),
 			include: [path.basename(inputFile)],
-			language: options.language || 'typescript',
+			language: options.language || "typescript",
 		},
 		output: {
 			directory: path.dirname(outputFile),
@@ -241,7 +241,7 @@ async function runSingleFileMode(options: CLIOptions): Promise<void> {
 	// Create FileIR with relative path (for single file, just the filename)
 	const fileIR = {
 		relativePath: path.basename(inputFile),
-		language: options.language || 'typescript',
+		language: options.language || "typescript",
 	};
 
 	// For single file mode, use input file's directory as projectRoot
