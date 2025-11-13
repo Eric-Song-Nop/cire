@@ -182,11 +182,13 @@ class HTMLGenerator implements DocGenerator {
 	): TemplateData {
 		const fileName = path.basename(fileIR.relativePath);
 		const cssPath = this.calculateCSSPath(fileIR);
+		const homePagePath = this.calculateHomePagePath(fileIR);
 
 		const templateData = {
 			title: `${fileName} - ${this.config.name || "Cire Documentation"}`,
 			content: htmlContent,
 			cssFiles: [cssPath],
+			homePagePath,
 			customCSS: this.config.template?.customCSS,
 			features: {
 				syntaxHighlighting:
@@ -210,6 +212,16 @@ class HTMLGenerator implements DocGenerator {
 	private calculateCSSPath(fileIR: FileIR): string {
 		const outputFileDir = path.dirname(fileIR.relativePath);
 		return path.relative(outputFileDir, "default.css") || "./default.css";
+	}
+
+	/**
+	 * Calculate home page path relative to output file
+	 */
+	private calculateHomePagePath(fileIR: FileIR): string {
+		const outputFileDir = path.dirname(fileIR.relativePath);
+		return (
+			path.relative(outputFileDir, "cireIndex.html") || "./cireIndex.html"
+		);
 	}
 
 	/**

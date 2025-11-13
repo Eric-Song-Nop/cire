@@ -34,6 +34,12 @@
     --notification-warning-bg: #ff9800;
     --notification-success-bg: #4caf50;
     --notification-text: white;
+
+    /* Home button colors */
+    --home-button-bg: #ffffff;
+    --home-button-text: #666666;
+    --home-button-hover-bg: #f0f0f0;
+    --home-button-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 /* Dark theme variables */
@@ -70,6 +76,12 @@
     --notification-warning-bg: #f57c00;
     --notification-success-bg: #388e3c;
     --notification-text: white;
+
+    /* Home button colors - dark theme */
+    --home-button-bg: #2d2d2d;
+    --home-button-text: #b0b0b0;
+    --home-button-hover-bg: #404040;
+    --home-button-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
 /* Auto theme - respects system preference */
@@ -558,4 +570,65 @@ code {
 .notification.notification-show {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* 浮动返回主页按钮 */
+.home-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    background: var(--home-button-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--home-button-text);
+    box-shadow: var(--home-button-shadow);
+    transition: all 0.2s ease;
+    z-index: 1000;
+    opacity: 0.8;
+}
+
+.home-button:hover {
+    background: var(--home-button-hover-bg);
+    color: var(--hover-border);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    opacity: 1;
+}
+
+.home-button:active {
+    transform: translateY(0);
+}
+
+.home-button svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2;
+}
+
+/* 响应式设计 - 移动端适配 */
+@media (max-width: 768px) {
+    .home-button {
+        width: 40px;
+        height: 40px;
+        top: 15px;
+        right: 15px;
+    }
+
+    .home-button svg {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+/* 打印时隐藏按钮 */
+@media print {
+    .home-button {
+        display: none;
+    }
 }
