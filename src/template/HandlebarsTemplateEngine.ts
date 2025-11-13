@@ -14,6 +14,7 @@ export interface TemplateData {
 	// Asset files
 	cssFiles: string[];
 	customCSS?: string;
+	homePagePath?: string;
 
 	// Feature flags
 	features: {
