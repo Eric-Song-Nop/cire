@@ -316,7 +316,7 @@ export class NavigationGenerator {
         <div class="navigation-container">
             <header class="site-header">
                 <h1 class="site-title">${config.name}</h1>
-                <p class="site-description">${config.description || "Static website generator providing IDE-like experiences for documentation, <a href='https://github.com/Eric-Song-Nop/cire'></a>"}</p>
+                <p class="site-description">${config.description || "Static website generator providing IDE-like experiences for documentation, <a href='https://github.com/Eric-Song-Nop/cire'>Cire</a>"}</p>
                 <div class="site-stats">
                     <div class="stat-item">
                         <span>📁</span>
