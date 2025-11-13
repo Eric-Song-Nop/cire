@@ -178,7 +178,7 @@ class HTMLGenerator implements DocGenerator {
 	private prepareTemplateData(
 		fileIR: FileIR,
 		htmlContent: string,
-		projectRoot: string,
+		_projectRoot: string,
 	): TemplateData {
 		const fileName = path.basename(fileIR.relativePath);
 		const cssPath = this.calculateCSSPath(fileIR);
@@ -287,7 +287,7 @@ class HTMLGenerator implements DocGenerator {
 	 * Generate Markdown-style HTML separating comments and code with syntax highlighting
 	 */
 	private generateMarkdownHTML(
-		fileIR: FileIR,
+		_fileIR: FileIR,
 		sourceContent: string,
 		info: TokenInfo[],
 	): string {

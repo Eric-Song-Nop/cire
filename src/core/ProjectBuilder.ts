@@ -2,7 +2,6 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { glob } from "glob";
 import type { CireConfig, FileIR } from "../types";
-import { logger } from "../utils/logger";
 import { NavigationGenerator } from "../utils/navigation-generator";
 import { WorkflowManager } from "./WorkflowManager";
 
