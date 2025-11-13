@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{> head}}
+</head>
+<body>
+    <div class="container">
+        <div class="navigation-container">
+            <header class="site-header">
+                <h1 class="site-title">{{name}}</h1>
+                <p class="site-description">{{description}}</p>
+                <div class="site-stats">
+                    <div class="stat-item">
+                        <span>📁</span>
+                        <span>{{directories}} directories</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>📄</span>
+                        <span>{{totalFiles}} files</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>📚</span>
+                        <span>{{language}} language</span>
+                    </div>
+                </div>
+            </header>
+
+            <main class="navigation-main">
+                {{{content}}}
+
+                <h2 class="section-title">📂 Files</h2>
+                <div class="tree-navigation">
+                    <ul class="tree-root">
+                        {{#each tree.children}}
+                            {{> tree-node this}}
+                        {{/each}}
+                        {{#unless tree.children}}
+                            <li><p>No files found</p></li>
+                        {{/unless}}
+                    </ul>
+                </div>
+            </main>
+
+            <footer class="site-footer">
+                <p>Generated with <a href="https://github.com/Eric-Song-Nop/cire">Cire</a> •
+                   <a href="https://github.com/Eric-Song-Nop/cire">View on GitHub</a></p>
+            </footer>
+        </div>
+    </div>
+
+    {{> tooltip}}
+    {{> scripts}}
+</body>
+</html>
