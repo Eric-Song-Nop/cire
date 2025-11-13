@@ -96,21 +96,22 @@
         // TODO: Implement proper cross-file navigation based on project structure
         console.log('Jumping to definition in:', filePath, 'line:', line, 'column:', column);
 
-        // Try to find the element with definition data attributes that matches
-        var allElements = document.querySelectorAll('[data-definition-line]');
+        // Find elements that are located at the definition position
+        // We look for elements with data-token-position matching the target definition position
+        var allElements = document.querySelectorAll('[data-token-line]');
         var bestMatch = null;
         var bestDistance = Infinity;
 
         for (var i = 0; i < allElements.length; i++) {
             var element = allElements[i];
-            var elementLine = parseInt(element.getAttribute('data-definition-line') || '0');
-            var elementColumn = parseInt(element.getAttribute('data-definition-column') || '0');
-            var elementFile = element.getAttribute('data-definition-file');
+            var tokenLine = parseInt(element.getAttribute('data-token-line') || '0');
+            var tokenColumn = parseInt(element.getAttribute('data-token-column') || '0');
 
-            // Check if this is the definition we're looking for
-            if (elementFile === filePath && elementLine === line) {
-                // Simple distance calculation for column
-                var columnDistance = Math.abs(elementColumn - column);
+            // Check if this token is located at the target definition position
+            if (tokenLine === line) {
+                // This token is on the same line as the definition
+                // Calculate column distance to find the most precise match
+                var columnDistance = Math.abs(tokenColumn - column);
                 if (columnDistance < bestDistance) {
                     bestDistance = columnDistance;
                     bestMatch = element;

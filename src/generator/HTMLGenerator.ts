@@ -520,6 +520,10 @@ class HTMLGenerator implements DocGenerator {
 					dataAttrs += ` data-definition-file="${this.escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
 					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
 					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
+
+					// Also store this token's own position for definition jumping
+					dataAttrs += ` data-token-line="${token.span.start.line}"`;
+					dataAttrs += ` data-token-column="${token.span.start.column}"`;
 				}
 				result += `<span${classAttr}${dataAttrs}>${this.escapeHtml(tokenText)}</span>`;
 			} else {
@@ -598,6 +602,10 @@ class HTMLGenerator implements DocGenerator {
 					dataAttrs += ` data-definition-file="${this.escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
 					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
 					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
+
+					// Also store this token's own position for definition jumping
+					dataAttrs += ` data-token-line="${token.span.start.line}"`;
+					dataAttrs += ` data-token-column="${token.span.start.column}"`;
 				}
 
 				result += `<span${classAttr}${dataAttrs}>${this.escapeHtml(tokenText)}</span>`;
