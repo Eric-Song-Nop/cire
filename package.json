@@ -1,10 +1,13 @@
 {
-	"name": "cire",
+	"name": "@cire-doc/cire-cli",
 	"version": "0.1.0",
 	"description": "Static website generator providing IDE-like experiences for documentation",
 	"main": "dist/cli.js",
 	"bin": {
 		"cire": "dist/cli.js"
+	},
+	"publishConfig": {
+		"access": "public"
 	},
 	"packageManager": "pnpm@10.15.0",
 	"scripts": {
@@ -19,7 +22,14 @@
 		"lint": "biome check",
 		"format": "biome format --write",
 		"lint:fix": "biome check --write",
-		"clean": "rm -rf dist output"
+		"clean": "rm -rf dist output",
+		"prepublishOnly": "pnpm run build && pnpm run test && pnpm run lint",
+		"prepack": "pnpm run build",
+		"release": "pnpm run clean && pnpm run build && pnpm run test && pnpm publish --no-git-checks",
+		"release:dry": "pnpm pack --dry-run",
+		"version:patch": "pnpm version patch",
+		"version:minor": "pnpm version minor",
+		"version:major": "pnpm version major"
 	},
 	"keywords": [
 		"static-site-generator",
@@ -31,7 +41,19 @@
 		"ide",
 		"syntax-highlighting"
 	],
-	"author": "Cire Team",
+	"author": {
+		"name": "Yifan Song",
+		"email": "ericoolen@yeah.net",
+		"url": "https://cire.netlify.app"
+	},
+	"homepage": "https://github.com/Eric-Song-Nop/cire",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Eric-Song-Nop/cire.git"
+	},
+	"bugs": {
+		"url": "https://github.com/Eric-Song-Nop/cire/issues"
+	},
 	"license": "MIT",
 	"dependencies": {
 		"@sourcegraph/scip": "github:sourcegraph/scip",
@@ -63,8 +85,14 @@
 		"typescript": "^5.2.2",
 		"vitest": "^4.0.3"
 	},
+	"files": [
+		"dist/",
+		"templates/",
+		"README.md",
+		"LICENSE"
+	],
 	"engines": {
-		"node": "22.21.0",
+		"node": ">=18.0.0",
 		"pnpm": ">=10.0.0"
 	}
 }
