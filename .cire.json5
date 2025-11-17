@@ -46,10 +46,15 @@
     theme: "auto",                    // 自动主题检测，支持暗色模式
   },
 
+  // 输出格式配置
+  outputFormat: {
+    backend: "markdown",              // 使用 markdown 后端生成文档
+  },
+
   // 功能开关 - 配置 Cire 的各项功能
   features: {
     syntaxHighlighting: true,         // 启用语法高亮（Tree-sitter）
-    hoverDocumentation: true,        // 启用 hover 文档（需要 SCIP 索引）
+    hoverDocumentation: false,        // 启用 hover 文档（需要 SCIP 索引）
     definitionJumping: true,          // 启用点击跳转到定义功能
     commentMarkdown: true,            // 启用注释转 Markdown 功能
     navigationIndex: true,            // 启用导航索引页面生成

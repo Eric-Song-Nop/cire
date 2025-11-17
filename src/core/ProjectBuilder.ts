@@ -64,8 +64,14 @@ export class ProjectBuilder {
 			// 6. Copy asset files
 			await this.copyAssets(outputDir);
 
-			// 7. Generate navigation index page
-			await this.generateNavigationIndex(sourceFiles, outputDir, config);
+			// 7. Generate navigation index page (only for HTML output)
+			if (config.outputFormat?.backend !== "markdown") {
+				await this.generateNavigationIndex(
+					sourceFiles,
+					outputDir,
+					config,
+				);
+			}
 
 			const processingTime = Date.now() - startTime;
 
@@ -211,18 +217,22 @@ export class ProjectBuilder {
 		};
 
 		// Process file through WorkflowManager
-		const html = this.workflowManager.processFile(fileIR, projectRoot);
+		const output = this.workflowManager.processFile(fileIR, projectRoot);
 		const outputPath = path.resolve(outputDir, relativePath);
-		const htmlOutputPath = outputPath.replace(/\.[^.]+$/, ".html");
+
+		// Determine output file extension based on config
+		const backend = this.cireConfig.outputFormat?.backend || "html";
+		const outputExtension = backend === "markdown" ? ".md" : ".html";
+		const outputFilePath = outputPath.replace(/\.[^.]+$/, outputExtension);
 
 		// Ensure output file directory exists
-		const outputDirPath = path.dirname(htmlOutputPath);
+		const outputDirPath = path.dirname(outputFilePath);
 		if (!fs.existsSync(outputDirPath)) {
 			fs.mkdirSync(outputDirPath, { recursive: true });
 		}
 
-		// Write HTML file
-		fs.writeFileSync(htmlOutputPath, html, "utf-8");
+		// Write output file
+		fs.writeFileSync(outputFilePath, output, "utf-8");
 	}
 
 	/**
@@ -268,9 +278,16 @@ export class ProjectBuilder {
 				relativeFiles,
 				config,
 			);
+
+			// Determine index file name based on output format
+			const backend = config.outputFormat?.backend || "html";
+			const indexFileName =
+				backend === "markdown" ? "cireIndex.md" : "cireIndex.html";
+
 			await navigationGenerator.saveNavigationPage(
 				navigationHTML,
 				outputDir,
+				indexFileName,
 			);
 
 			console.log("✅ Navigation index page generated successfully");

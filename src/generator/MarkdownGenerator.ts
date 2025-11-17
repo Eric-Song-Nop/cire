@@ -3,10 +3,6 @@ import * as path from "node:path";
 import * as commentParser from "comment-parser";
 import { marked } from "marked";
 import { match } from "ts-pattern";
-import {
-	HandlebarsTemplateEngine,
-	type TemplateData,
-} from "../template/HandlebarsTemplateEngine";
 import type {
 	CireConfig,
 	DocGenerator,
@@ -16,19 +12,16 @@ import type {
 } from "../types";
 
 /**
- * We turn the source code with Highlight Info into HTML
- * Only syntax highlighting is considered - hover and definition are ignored for now
+ * MarkdownGenerator - Generates markdown documentation from source code with syntax highlighting,
+ * hover documentation, and definition jumping capabilities using <code> regions instead of markdown code blocks.
  */
-class HTMLGenerator implements DocGenerator {
-	private templateEngine: HandlebarsTemplateEngine;
+class MarkdownGenerator implements DocGenerator {
 	private config: CireConfig;
 
 	constructor(config: CireConfig) {
 		this.config = config;
-		const defaultTemplateDir = path.join(__dirname, "../../templates");
-		const templateDir = config.template?.templateDir || defaultTemplateDir;
-		this.templateEngine = new HandlebarsTemplateEngine(templateDir);
 	}
+
 	/**
 	 * Convert position to character offset in source text
 	 */
@@ -44,15 +37,38 @@ class HTMLGenerator implements DocGenerator {
 	}
 
 	/**
-	 * Escape HTML special characters to prevent rendering issues
+	 * Escape markdown special characters to prevent rendering issues
+	 */
+	private escapeMarkdown(text: string): string {
+		// Escape markdown special characters but preserve code structure
+		// CRITICAL: Do NOT escape hyphens at all - they are too problematic in code
+		return text
+			.replace(/\\/g, "\\\\") // Escape backslashes first
+			.replace(/`/g, "\\`") // Escape backticks
+			.replace(/\*/g, "\\*") // Escape asterisks
+			.replace(/_/g, "\\_") // Escape underscores
+			.replace(/\{/g, "\\{") // Escape curly braces
+			.replace(/\}/g, "\\}") // Escape curly braces
+			.replace(/\[/g, "\\[") // Escape square brackets
+			.replace(/\]/g, "\\]") // Escape square brackets
+			.replace(/\(/g, "\\(") // Escape parentheses
+			.replace(/\)/g, "\\)") // Escape parentheses
+			.replace(/#/g, "\\#") // Escape hash symbols
+			.replace(/\+/g, "\\+") // Escape plus signs
+			.replace(/\./g, "\\.") // Escape periods
+			.replace(/!/g, "\\!"); // Escape exclamation marks
+	}
+
+	/**
+	 * Escape HTML special characters for content inside <pre><code> blocks and HTML attributes
 	 */
 	private escapeHtml(text: string): string {
 		return text
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;")
-			.replace(/'/g, "&#039;");
+			.replace(/&/g, "&")
+			.replace(/</g, "<")
+			.replace(/>/g, ">")
+			.replace(/"/g, '"')
+			.replace(/'/g, "'");
 	}
 
 	/**
@@ -87,7 +103,7 @@ class HTMLGenerator implements DocGenerator {
 						} catch (error) {
 							console.warn(error);
 							// Fallback to escaped documentation if marked fails
-							hoverDocumentation = this.escapeHtml(
+							hoverDocumentation = this.escapeMarkdown(
 								mh.documentation,
 							);
 						}
@@ -113,7 +129,7 @@ class HTMLGenerator implements DocGenerator {
 	}
 
 	/**
-	 * Generate HTML from FileIR and TokenInfo
+	 * Generate markdown from FileIR and TokenInfo
 	 */
 	generate(fileIR: FileIR, info: TokenInfo[], projectRoot: string): string {
 		try {
@@ -125,32 +141,17 @@ class HTMLGenerator implements DocGenerator {
 
 			const sourceContent = fs.readFileSync(sourcePath, "utf-8");
 
-			// Generate HTML content using existing logic
-			const htmlContent = this.generateContent(
-				fileIR,
-				sourceContent,
-				info,
-			);
-
-			// Prepare template data
-			const templateData = this.prepareTemplateData(
-				fileIR,
-				htmlContent,
-				projectRoot,
-			);
-
-			// Use template engine to render final HTML
-			const layout = this.config.template?.layout || "default";
-			return this.templateEngine.render(layout, templateData);
+			// Generate markdown content
+			return this.generateContent(fileIR, sourceContent, info);
 		} catch (error) {
 			throw new Error(
-				`Failed to generate HTML for ${fileIR.relativePath}: ${error}`,
+				`Failed to generate markdown for ${fileIR.relativePath}: ${error}`,
 			);
 		}
 	}
 
 	/**
-	 * Generate HTML content (existing logic)
+	 * Generate markdown content
 	 */
 	private generateContent(
 		fileIR: FileIR,
@@ -164,68 +165,15 @@ class HTMLGenerator implements DocGenerator {
 
 		if (!hasCommentTokens) {
 			// Original method for backward compatibility
-			// Tokens are already sorted by SortTokenPass
-			return this.generateHighlightedHTML(sourceContent, info);
+			return this.generateHighlightedMarkdown(sourceContent, info);
 		}
 
 		// New Markdown-style rendering approach
-		return this.generateMarkdownHTML(fileIR, sourceContent, info);
+		return this.generateMarkdownWithComments(fileIR, sourceContent, info);
 	}
 
 	/**
-	 * Prepare template data for handlebars rendering
-	 */
-	private prepareTemplateData(
-		fileIR: FileIR,
-		htmlContent: string,
-		_projectRoot: string,
-	): TemplateData {
-		const fileName = path.basename(fileIR.relativePath);
-		const cssPath = this.calculateCSSPath(fileIR);
-		const homePagePath = this.calculateHomePagePath(fileIR);
-
-		const templateData = {
-			title: `${fileName} - ${this.config.name || "Cire Documentation"}`,
-			content: htmlContent,
-			cssFiles: [cssPath],
-			homePagePath,
-			customCSS: this.config.template?.customCSS,
-			features: {
-				syntaxHighlighting:
-					this.config.features?.syntaxHighlighting ?? true,
-				hoverDocumentation:
-					this.config.features?.hoverDocumentation ?? true,
-				definitionJumping:
-					this.config.features?.definitionJumping ?? true,
-				commentMarkdown: this.config.features?.commentMarkdown ?? true,
-				navigationIndex: this.config.features?.navigationIndex ?? false,
-			},
-			layout: this.config.template?.layout || "default",
-		};
-
-		return templateData;
-	}
-
-	/**
-	 * Calculate CSS path relative to output file
-	 */
-	private calculateCSSPath(fileIR: FileIR): string {
-		const outputFileDir = path.dirname(fileIR.relativePath);
-		return path.relative(outputFileDir, "default.css") || "./default.css";
-	}
-
-	/**
-	 * Calculate home page path relative to output file
-	 */
-	private calculateHomePagePath(fileIR: FileIR): string {
-		const outputFileDir = path.dirname(fileIR.relativePath);
-		return (
-			path.relative(outputFileDir, "cireIndex.html") || "./cireIndex.html"
-		);
-	}
-
-	/**
-	 * Render comment token to HTML with comment-parser integration
+	 * Render comment token to markdown with comment-parser integration
 	 */
 	private renderCommentToken(commentText: string): string {
 		// comment-parser will handle comment markers automatically
@@ -244,34 +192,31 @@ class HTMLGenerator implements DocGenerator {
 				.filter((desc) => desc !== undefined);
 			const rebuiltDescription = descriptions.join("\n");
 
-			const renderedContent = marked.parse(rebuiltDescription);
-			return `<div class="token-comment">${renderedContent}</div>`;
+			return `${rebuiltDescription}\n\n`;
 		}
 
 		// Should not happen, but handle empty parsed result
-		const renderedContent = marked.parse(commentText);
-		return `<div class="token-comment">${renderedContent}</div>`;
+		return `${commentText}\n\n`;
 	}
 
 	/**
 	 * Render JSDoc comment using parsed comment-parser result
 	 */
 	private renderJSDocComment(jsdoc: commentParser.Block): string {
-		let html = "";
+		let markdown = "";
 
-		// Render main description using marked
+		// Render main description without HTML conversion
 		if (jsdoc.description) {
-			html += `<div class="jsdoc-description">${marked.parseInline(jsdoc.description)}</div>`;
+			markdown += `${jsdoc.description}\n\n`;
 		}
 
 		// Render tags
-		html += '<div class="jsdoc-tags">';
+		markdown += "### Parameters & Returns\n\n";
 		for (const tag of jsdoc.tags) {
-			html += this.renderJSDocTag(tag);
+			markdown += this.renderJSDocTag(tag);
 		}
-		html += "</div>";
 
-		return `<span class="token-comment jsdoc-comment">${html}</span>`;
+		return `${markdown}\n\n`;
 	}
 
 	/**
@@ -282,23 +227,23 @@ class HTMLGenerator implements DocGenerator {
 		const name = tag.name || "";
 		const description = tag.description || "";
 
-		let tagContent = `<span class="jsdoc-tag-name">@${tagName}</span>`;
+		let tagContent = `**@${tagName}**`;
 
 		if (name) {
-			tagContent += ` <span class="jsdoc-tag-name">${this.escapeHtml(name)}</span>`;
+			tagContent += ` \`${name}\``;
 		}
 
 		if (description) {
-			tagContent += ` <span class="jsdoc-tag-description">${marked.parseInline(description)}</span>`;
+			tagContent += ` - ${description}`;
 		}
 
-		return `<div class="jsdoc-tag">${tagContent}</div>`;
+		return `${tagContent}\n\n`;
 	}
 
 	/**
-	 * Generate Markdown-style HTML separating comments and code with syntax highlighting
+	 * Generate markdown separating comments and code with syntax highlighting
 	 */
-	private generateMarkdownHTML(
+	private generateMarkdownWithComments(
 		_fileIR: FileIR,
 		sourceContent: string,
 		info: TokenInfo[],
@@ -332,7 +277,7 @@ class HTMLGenerator implements DocGenerator {
 					nonCommentTokens,
 				);
 				if (highlightedCode.trim()) {
-					result.push(`<pre><code>${highlightedCode}</code></pre>`);
+					result.push(this.wrapCodeBlock(highlightedCode));
 				}
 			}
 
@@ -354,16 +299,24 @@ class HTMLGenerator implements DocGenerator {
 				nonCommentTokens,
 			);
 			if (highlightedCode.trim()) {
-				result.push(`<pre><code>${highlightedCode}</code></pre>`);
+				result.push(this.wrapCodeBlock(highlightedCode));
 			}
 		}
 
-		const markdownContent = result.join("\n");
-		return `<div class="markdown-content">${markdownContent}</div>`;
+		// Join with newlines to ensure proper separation
+		return result.join("\n");
 	}
 
 	/**
-	 * Generate highlighted HTML for a specific line range
+	 * Wrap code in <code> region with syntax highlighting classes
+	 */
+	private wrapCodeBlock(code: string): string {
+		// Ensure proper separation with triple newlines
+		return `<pre><code>${code}</code></pre>\n\n`;
+	}
+
+	/**
+	 * Generate highlighted markdown for a specific line range
 	 */
 	private generateHighlightedCodeSegment(
 		sourceContent: string,
@@ -411,7 +364,9 @@ class HTMLGenerator implements DocGenerator {
 
 			if (lineTokens.length === 0) {
 				// No tokens for this line, just add the escaped line
-				result += `${this.escapeHtml(line)}\n`;
+				// Add newline only if this is not the last line
+				const lineEnding = lineNum < endLine ? "\n" : "";
+				result += `${this.escapeHtml(line)}${lineEnding}`;
 			} else {
 				// Process tokens on this line
 				const lineContent = this.processTokensOnLine(
@@ -419,7 +374,9 @@ class HTMLGenerator implements DocGenerator {
 					lineNum,
 					lineTokens,
 				);
-				result += `${lineContent}\n`;
+				// Add newline only if this is not the last line
+				const lineEnding = lineNum < endLine ? "\n" : "";
+				result += `${lineContent}${lineEnding}`;
 
 				// Check if the last token spans multiple lines and skip already processed lines
 				const lastToken = lineTokens[lineTokens.length - 1];
@@ -430,7 +387,9 @@ class HTMLGenerator implements DocGenerator {
 			}
 		}
 
-		return result.trim();
+		// Return the result without trimming to preserve leading/trailing newlines
+		// The result already has proper newlines for each line, no extra trimming needed
+		return result;
 	}
 
 	/**
@@ -475,7 +434,7 @@ class HTMLGenerator implements DocGenerator {
 				result += this.escapeHtml(textBefore);
 			}
 
-			// Add token with styling
+			// Add token with styling and data attributes
 			const tokenText = sourceContent.slice(tokenStart, tokenEnd);
 			const tokenInfo = this.extractTokenInfo(token.meta);
 
@@ -495,7 +454,8 @@ class HTMLGenerator implements DocGenerator {
 				) {
 					dataAttrs += ` data-hover-content="${this.escapeHtml(tokenInfo.hoverContent)}"`;
 					if (tokenInfo.hoverDocumentation) {
-						dataAttrs += ` data-hover-documentation="${this.escapeHtml(tokenInfo.hoverDocumentation)}"`;
+						// hoverDocumentation is already HTML from marked.parse(), don't escape it
+						dataAttrs += ` data-hover-documentation="${tokenInfo.hoverDocumentation}"`;
 					}
 				}
 				if (tokenInfo.definitionInfo) {
@@ -525,15 +485,16 @@ class HTMLGenerator implements DocGenerator {
 	}
 
 	/**
-	 * Generate HTML with highlighted tokens, preserving all source text
+	 * Generate highlighted markdown, preserving all source text
 	 */
-	private generateHighlightedHTML(
+	private generateHighlightedMarkdown(
 		sourceContent: string,
 		tokens: TokenInfo[],
 	): string {
 		if (tokens.length === 0) {
-			// No highlight tokens, just escape and wrap in pre/code
-			return `<pre><code>${this.escapeHtml(sourceContent)}</code></pre>`;
+			// No highlight tokens, just escape and wrap in <code>
+			// Use HTML escaping for content inside <pre><code> blocks
+			return this.wrapCodeBlock(this.escapeHtml(sourceContent));
 		}
 
 		let result = "";
@@ -580,7 +541,8 @@ class HTMLGenerator implements DocGenerator {
 				) {
 					dataAttrs += ` data-hover-content="${this.escapeHtml(tokenInfo.hoverContent)}"`;
 					if (tokenInfo.hoverDocumentation) {
-						dataAttrs += ` data-hover-documentation="${this.escapeHtml(tokenInfo.hoverDocumentation)}"`;
+						// hoverDocumentation is already HTML from marked.parse(), don't escape it
+						dataAttrs += ` data-hover-documentation="${tokenInfo.hoverDocumentation}"`;
 					}
 				}
 				if (tokenInfo.definitionInfo) {
@@ -608,9 +570,10 @@ class HTMLGenerator implements DocGenerator {
 			result += this.escapeHtml(remainingText);
 		}
 
-		return `<pre><code>${result}</code></pre>`;
+		// Ensure the result preserves newlines properly for markdown rendering
+		return this.wrapCodeBlock(result);
 	}
 }
 
-export { HTMLGenerator };
-export default HTMLGenerator;
+export { MarkdownGenerator };
+export default MarkdownGenerator;
