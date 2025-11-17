@@ -1,105 +1,20 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as commentParser from "comment-parser";
-import { marked } from "marked";
-import { match } from "ts-pattern";
-import type {
-	CireConfig,
-	DocGenerator,
-	FileIR,
-	Position,
-	TokenInfo,
-} from "../types";
-import { escapeHtml, escapeMarkdown } from "./Escapes";
+import type { FileIR, TokenInfo } from "../types";
+import { BaseGenerator } from "./BaseGenerator";
+import { escapeHtml } from "./Escapes";
 
 /**
  * MarkdownGenerator - Generates markdown documentation from source code with syntax highlighting,
  * hover documentation, and definition jumping capabilities using <code> regions instead of markdown code blocks.
  */
-class MarkdownGenerator implements DocGenerator {
-	private config: CireConfig;
-
-	constructor(config: CireConfig) {
-		this.config = config;
-	}
-
-	/**
-	 * Convert position to character offset in source text
-	 */
-	private positionToOffset(text: string, pos: Position): number {
-		const lines = text.split("\n");
-		let offset = 0;
-
-		for (let i = 0; i < pos.line; i++) {
-			offset += lines[i].length + 1; // +1 for newline
-		}
-
-		return offset + pos.column;
-	}
-
-	/**
-	 * Extract token information including classes, hover data, and definition info
-	 */
-	private extractTokenInfo(meta: TokenInfo["meta"]): {
-		classes: string[];
-		hoverContent?: string;
-		hoverDocumentation?: string;
-		definitionInfo?: {
-			filePath: string;
-			pos: Position;
-		};
-	} {
-		const classes: string[] = [];
-		let hoverContent: string | undefined;
-		let hoverDocumentation: string | undefined;
-		let definitionInfo: { filePath: string; pos: Position } | undefined;
-
-		meta.forEach((m) => {
-			match(m)
-				.with({ type: "highlight" }, (mh) => {
-					classes.push(...mh.highlightClasses);
-				})
-				.with({ type: "hover" }, (mh) => {
-					classes.push("token-hoverable");
-					hoverContent = mh.content;
-					// Preprocess hover documentation with marked on server-side
-					if (mh.documentation) {
-						try {
-							hoverDocumentation = marked.parse(mh.documentation);
-						} catch (error) {
-							console.warn(error);
-							// Fallback to escaped documentation if marked fails
-							hoverDocumentation = escapeMarkdown(
-								mh.documentation,
-							);
-						}
-					}
-				})
-				.with({ type: "definition" }, (md) => {
-					classes.push("token-clickable", "token-definition");
-					definitionInfo = {
-						filePath: md.filePath,
-						pos: md.pos,
-					};
-				})
-				.with({ type: "comment" }, () => {})
-				.exhaustive();
-		});
-
-		return {
-			classes,
-			hoverContent,
-			hoverDocumentation,
-			definitionInfo,
-		};
-	}
-
+class MarkdownGenerator extends BaseGenerator {
 	/**
 	 * Generate markdown from FileIR and TokenInfo
 	 */
 	generate(fileIR: FileIR, info: TokenInfo[], projectRoot: string): string {
 		try {
-			// Read source file content
 			const sourcePath = path.join(projectRoot, fileIR.relativePath);
 			if (!fs.existsSync(sourcePath)) {
 				throw new Error(`Source file not found: ${sourcePath}`);
@@ -107,7 +22,6 @@ class MarkdownGenerator implements DocGenerator {
 
 			const sourceContent = fs.readFileSync(sourcePath, "utf-8");
 
-			// Generate markdown content
 			return this.generateContent(fileIR, sourceContent, info);
 		} catch (error) {
 			throw new Error(
@@ -130,11 +44,10 @@ class MarkdownGenerator implements DocGenerator {
 		);
 
 		if (!hasCommentTokens) {
-			// Original method for backward compatibility
 			return this.generateHighlightedMarkdown(sourceContent, info);
 		}
 
-		// New Markdown-style rendering approach
+		// Markdown-style rendering approach
 		return this.generateMarkdownWithComments(fileIR, sourceContent, info);
 	}
 
@@ -279,175 +192,6 @@ class MarkdownGenerator implements DocGenerator {
 	private wrapCodeBlock(code: string): string {
 		// Ensure proper separation with triple newlines
 		return `<pre><code>${code}</code></pre>\n\n`;
-	}
-
-	/**
-	 * Generate highlighted markdown for a specific line range
-	 */
-	private generateHighlightedCodeSegment(
-		sourceContent: string,
-		startLine: number,
-		endLine: number,
-		tokens: TokenInfo[],
-	): string {
-		if (startLine > endLine) return "";
-
-		const lines = sourceContent.split("\n");
-		let result = "";
-		// Filter tokens that are within our line range
-		const rangeTokens = tokens.filter((token) => {
-			const tokenStart = token.span.start.line;
-			const tokenEnd = token.span.end.line;
-			return tokenStart <= endLine && tokenEnd >= startLine;
-		});
-
-		// Process each line in the range
-		for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
-			if (lineNum >= lines.length) break;
-
-			const line = lines[lineNum];
-			const lineStartOffset = this.positionToOffset(sourceContent, {
-				line: lineNum,
-				column: 0,
-			});
-			const lineEndOffset = this.positionToOffset(sourceContent, {
-				line: lineNum,
-				column: line.length,
-			});
-
-			// Find tokens that overlap with this line
-			const lineTokens = rangeTokens.filter((token) => {
-				const tokenStart = this.positionToOffset(
-					sourceContent,
-					token.span.start,
-				);
-				const tokenEnd = this.positionToOffset(
-					sourceContent,
-					token.span.end,
-				);
-				return tokenStart < lineEndOffset && tokenEnd > lineStartOffset;
-			});
-
-			if (lineTokens.length === 0) {
-				// No tokens for this line, just add the escaped line
-				// Add newline only if this is not the last line
-				const lineEnding = lineNum < endLine ? "\n" : "";
-				result += `${escapeHtml(line)}${lineEnding}`;
-			} else {
-				// Process tokens on this line
-				const lineContent = this.processTokensOnLine(
-					sourceContent,
-					lineNum,
-					lineTokens,
-				);
-				// Add newline only if this is not the last line
-				const lineEnding = lineNum < endLine ? "\n" : "";
-				result += `${lineContent}${lineEnding}`;
-
-				// Check if the last token spans multiple lines and skip already processed lines
-				const lastToken = lineTokens[lineTokens.length - 1];
-				const lastTokenEndLine = lastToken.span.end.line;
-				if (lastTokenEndLine > lineNum) {
-					lineNum = lastTokenEndLine;
-				}
-			}
-		}
-
-		// Return the result without trimming to preserve leading/trailing newlines
-		// The result already has proper newlines for each line, no extra trimming needed
-		return result;
-	}
-
-	/**
-	 * Process tokens on a specific line
-	 */
-	private processTokensOnLine(
-		sourceContent: string,
-		lineNum: number,
-		lineTokens: TokenInfo[],
-	): string {
-		const lines = sourceContent.split("\n");
-		const line = lines[lineNum];
-		const lineStartOffset = this.positionToOffset(sourceContent, {
-			line: lineNum,
-			column: 0,
-		});
-		const lineEndOffset = this.positionToOffset(sourceContent, {
-			line: lineNum,
-			column: line.length,
-		});
-
-		let result = "";
-		let currentOffset = lineStartOffset;
-
-		// Process each token
-		for (const token of lineTokens) {
-			const tokenStart = this.positionToOffset(
-				sourceContent,
-				token.span.start,
-			);
-			const tokenEnd = this.positionToOffset(
-				sourceContent,
-				token.span.end,
-			);
-
-			// Add text before token
-			if (tokenStart > currentOffset) {
-				const textBefore = sourceContent.slice(
-					currentOffset,
-					tokenStart,
-				);
-				result += escapeHtml(textBefore);
-			}
-
-			// Add token with styling and data attributes
-			const tokenText = sourceContent.slice(tokenStart, tokenEnd);
-			const tokenInfo = this.extractTokenInfo(token.meta);
-
-			if (
-				tokenInfo.classes.length > 0 ||
-				tokenInfo.hoverContent ||
-				tokenInfo.definitionInfo
-			) {
-				const classAttr =
-					tokenInfo.classes.length > 0
-						? ` class="${tokenInfo.classes.join(" ")}"`
-						: "";
-				let dataAttrs = "";
-				if (
-					tokenInfo.hoverContent &&
-					this.config.features?.hoverDocumentation
-				) {
-					dataAttrs += ` data-hover-content="${escapeHtml(tokenInfo.hoverContent)}"`;
-					if (tokenInfo.hoverDocumentation) {
-						// hoverDocumentation is already HTML from marked.parse(), don't escape it
-						dataAttrs += ` data-hover-documentation="${tokenInfo.hoverDocumentation}"`;
-					}
-				}
-				if (tokenInfo.definitionInfo) {
-					dataAttrs += ` data-definition-file="${escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
-					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
-					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
-
-					// Also store this token's own position for definition jumping
-					dataAttrs += ` data-token-line="${token.span.start.line}"`;
-					dataAttrs += ` data-token-column="${token.span.start.column}"`;
-				}
-				result += `<span${classAttr}${dataAttrs}>${escapeHtml(tokenText)}</span>`;
-			} else {
-				result += escapeHtml(tokenText);
-			}
-
-			currentOffset = tokenEnd;
-		}
-
-		// Add remaining text after last token
-		if (currentOffset < lineEndOffset) {
-			const textAfter = sourceContent.slice(currentOffset, lineEndOffset);
-			result += escapeHtml(textAfter);
-		}
-
-		return result;
 	}
 
 	/**
