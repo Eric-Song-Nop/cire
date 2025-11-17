@@ -10,6 +10,7 @@ import type {
 	Position,
 	TokenInfo,
 } from "../types";
+import { escapeHtml, escapeMarkdown } from "./Escapes";
 
 /**
  * MarkdownGenerator - Generates markdown documentation from source code with syntax highlighting,
@@ -34,41 +35,6 @@ class MarkdownGenerator implements DocGenerator {
 		}
 
 		return offset + pos.column;
-	}
-
-	/**
-	 * Escape markdown special characters to prevent rendering issues
-	 */
-	private escapeMarkdown(text: string): string {
-		// Escape markdown special characters but preserve code structure
-		// CRITICAL: Do NOT escape hyphens at all - they are too problematic in code
-		return text
-			.replace(/\\/g, "\\\\") // Escape backslashes first
-			.replace(/`/g, "\\`") // Escape backticks
-			.replace(/\*/g, "\\*") // Escape asterisks
-			.replace(/_/g, "\\_") // Escape underscores
-			.replace(/\{/g, "\\{") // Escape curly braces
-			.replace(/\}/g, "\\}") // Escape curly braces
-			.replace(/\[/g, "\\[") // Escape square brackets
-			.replace(/\]/g, "\\]") // Escape square brackets
-			.replace(/\(/g, "\\(") // Escape parentheses
-			.replace(/\)/g, "\\)") // Escape parentheses
-			.replace(/#/g, "\\#") // Escape hash symbols
-			.replace(/\+/g, "\\+") // Escape plus signs
-			.replace(/\./g, "\\.") // Escape periods
-			.replace(/!/g, "\\!"); // Escape exclamation marks
-	}
-
-	/**
-	 * Escape HTML special characters for content inside <pre><code> blocks and HTML attributes
-	 */
-	private escapeHtml(text: string): string {
-		return text
-			.replace(/&/g, "&")
-			.replace(/</g, "<")
-			.replace(/>/g, ">")
-			.replace(/"/g, '"')
-			.replace(/'/g, "'");
 	}
 
 	/**
@@ -103,7 +69,7 @@ class MarkdownGenerator implements DocGenerator {
 						} catch (error) {
 							console.warn(error);
 							// Fallback to escaped documentation if marked fails
-							hoverDocumentation = this.escapeMarkdown(
+							hoverDocumentation = escapeMarkdown(
 								mh.documentation,
 							);
 						}
@@ -366,7 +332,7 @@ class MarkdownGenerator implements DocGenerator {
 				// No tokens for this line, just add the escaped line
 				// Add newline only if this is not the last line
 				const lineEnding = lineNum < endLine ? "\n" : "";
-				result += `${this.escapeHtml(line)}${lineEnding}`;
+				result += `${escapeHtml(line)}${lineEnding}`;
 			} else {
 				// Process tokens on this line
 				const lineContent = this.processTokensOnLine(
@@ -431,7 +397,7 @@ class MarkdownGenerator implements DocGenerator {
 					currentOffset,
 					tokenStart,
 				);
-				result += this.escapeHtml(textBefore);
+				result += escapeHtml(textBefore);
 			}
 
 			// Add token with styling and data attributes
@@ -452,14 +418,14 @@ class MarkdownGenerator implements DocGenerator {
 					tokenInfo.hoverContent &&
 					this.config.features?.hoverDocumentation
 				) {
-					dataAttrs += ` data-hover-content="${this.escapeHtml(tokenInfo.hoverContent)}"`;
+					dataAttrs += ` data-hover-content="${escapeHtml(tokenInfo.hoverContent)}"`;
 					if (tokenInfo.hoverDocumentation) {
 						// hoverDocumentation is already HTML from marked.parse(), don't escape it
 						dataAttrs += ` data-hover-documentation="${tokenInfo.hoverDocumentation}"`;
 					}
 				}
 				if (tokenInfo.definitionInfo) {
-					dataAttrs += ` data-definition-file="${this.escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
+					dataAttrs += ` data-definition-file="${escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
 					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
 					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
 
@@ -467,9 +433,9 @@ class MarkdownGenerator implements DocGenerator {
 					dataAttrs += ` data-token-line="${token.span.start.line}"`;
 					dataAttrs += ` data-token-column="${token.span.start.column}"`;
 				}
-				result += `<span${classAttr}${dataAttrs}>${this.escapeHtml(tokenText)}</span>`;
+				result += `<span${classAttr}${dataAttrs}>${escapeHtml(tokenText)}</span>`;
 			} else {
-				result += this.escapeHtml(tokenText);
+				result += escapeHtml(tokenText);
 			}
 
 			currentOffset = tokenEnd;
@@ -478,7 +444,7 @@ class MarkdownGenerator implements DocGenerator {
 		// Add remaining text after last token
 		if (currentOffset < lineEndOffset) {
 			const textAfter = sourceContent.slice(currentOffset, lineEndOffset);
-			result += this.escapeHtml(textAfter);
+			result += escapeHtml(textAfter);
 		}
 
 		return result;
@@ -494,7 +460,7 @@ class MarkdownGenerator implements DocGenerator {
 		if (tokens.length === 0) {
 			// No highlight tokens, just escape and wrap in <code>
 			// Use HTML escaping for content inside <pre><code> blocks
-			return this.wrapCodeBlock(this.escapeHtml(sourceContent));
+			return this.wrapCodeBlock(escapeHtml(sourceContent));
 		}
 
 		let result = "";
@@ -517,7 +483,7 @@ class MarkdownGenerator implements DocGenerator {
 					currentOffset,
 					tokenStart,
 				);
-				result += this.escapeHtml(textBefore);
+				result += escapeHtml(textBefore);
 			}
 
 			// Add token with CSS classes and hover data
@@ -539,14 +505,14 @@ class MarkdownGenerator implements DocGenerator {
 					tokenInfo.hoverContent &&
 					this.config.features?.hoverDocumentation
 				) {
-					dataAttrs += ` data-hover-content="${this.escapeHtml(tokenInfo.hoverContent)}"`;
+					dataAttrs += ` data-hover-content="${escapeHtml(tokenInfo.hoverContent)}"`;
 					if (tokenInfo.hoverDocumentation) {
 						// hoverDocumentation is already HTML from marked.parse(), don't escape it
 						dataAttrs += ` data-hover-documentation="${tokenInfo.hoverDocumentation}"`;
 					}
 				}
 				if (tokenInfo.definitionInfo) {
-					dataAttrs += ` data-definition-file="${this.escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
+					dataAttrs += ` data-definition-file="${escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
 					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
 					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
 
@@ -555,10 +521,10 @@ class MarkdownGenerator implements DocGenerator {
 					dataAttrs += ` data-token-column="${token.span.start.column}"`;
 				}
 
-				result += `<span${classAttr}${dataAttrs}>${this.escapeHtml(tokenText)}</span>`;
+				result += `<span${classAttr}${dataAttrs}>${escapeHtml(tokenText)}</span>`;
 			} else {
 				// No classes or hover info, just escape the text
-				result += this.escapeHtml(tokenText);
+				result += escapeHtml(tokenText);
 			}
 
 			currentOffset = tokenEnd;
@@ -567,7 +533,7 @@ class MarkdownGenerator implements DocGenerator {
 		// Add remaining text after last token
 		if (currentOffset < sourceContent.length) {
 			const remainingText = sourceContent.slice(currentOffset);
-			result += this.escapeHtml(remainingText);
+			result += escapeHtml(remainingText);
 		}
 
 		// Ensure the result preserves newlines properly for markdown rendering
