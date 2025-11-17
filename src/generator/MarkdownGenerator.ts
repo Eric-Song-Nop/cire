@@ -43,7 +43,11 @@ class MarkdownGenerator extends BaseGenerator {
 		);
 
 		if (!hasCommentTokens) {
-			return this.generateHighlightedMarkdown(sourceContent, info);
+			return this.generateHighlightedContent(
+				sourceContent,
+				info,
+				(content) => `<code>${content}</code>`,
+			);
 		}
 
 		// Markdown-style rendering approach
@@ -155,7 +159,7 @@ class MarkdownGenerator extends BaseGenerator {
 					nonCommentTokens,
 				);
 				if (highlightedCode.trim()) {
-					result.push(this.wrapCodeBlock(highlightedCode));
+					result.push(`<pre><code>${highlightedCode}</code></pre>`);
 				}
 			}
 
@@ -177,36 +181,13 @@ class MarkdownGenerator extends BaseGenerator {
 				nonCommentTokens,
 			);
 			if (highlightedCode.trim()) {
-				result.push(this.wrapCodeBlock(highlightedCode));
+				result.push(`<pre><code>${highlightedCode}</code></pre>`);
 			}
 		}
 
 		// Join with newlines to ensure proper separation
 		return result.join("\n");
 	}
-
-	/**
-	 * Wrap code in <code> region with syntax highlighting classes
-	 */
-	private wrapCodeBlock(code: string): string {
-		// Ensure proper separation with triple newlines
-		return `<pre><code>${code}</code></pre>\n\n`;
-	}
-
-	/**
-	 * Generate highlighted markdown, preserving all source text
-	 */
-	private generateHighlightedMarkdown(
-		sourceContent: string,
-		tokens: TokenInfo[],
-	): string {
-		return this.generateHighlightedContent(
-			sourceContent,
-			tokens,
-			(content) => this.wrapCodeBlock(content),
-		);
-	}
 }
-
 export { MarkdownGenerator };
 export default MarkdownGenerator;
