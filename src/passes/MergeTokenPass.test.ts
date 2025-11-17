@@ -35,11 +35,18 @@ describe("MergeTokenPass", () => {
 			if (type === "comment") {
 				return { type: "comment" as const };
 			}
-			if (type === "definition") {
+			if (type === "symbolDefinition") {
 				return {
-					type: "definition" as const,
-					filePath: "/test/file.ts",
-					pos: { line: 0, column: 0 },
+					type: "symbolDefinition" as const,
+					symbolId: "test-symbol-id",
+					symbolName: "TestSymbol",
+				};
+			}
+			if (type === "symbolReference") {
+				return {
+					type: "symbolReference" as const,
+					symbolId: "test-symbol-id",
+					symbolName: "TestSymbol",
 				};
 			}
 			throw new Error(`Unknown meta type: ${type}`);
@@ -101,7 +108,7 @@ describe("MergeTokenPass", () => {
 		it("should handle multiple overlapping tokens", () => {
 			const token1 = createToken(1, 0, 1, 5, ["highlight"]);
 			const token2 = createToken(1, 3, 1, 8, ["hover"]);
-			const token3 = createToken(1, 6, 1, 12, ["definition"]);
+			const token3 = createToken(1, 6, 1, 12, ["symbolDefinition"]);
 
 			const result = mergePass.process([token1, token2, token3]);
 
@@ -139,13 +146,13 @@ describe("MergeTokenPass", () => {
 			expect(result[4].span.start).toEqual({ line: 1, column: 8 });
 			expect(result[4].span.end).toEqual({ line: 1, column: 12 });
 			expect(result[4].meta).toHaveLength(1);
-			expect(result[4].meta[0].type).toBe("definition");
+			expect(result[4].meta[0].type).toBe("symbolDefinition");
 		});
 
 		it("should handle multiple non-overlapping groups", () => {
 			const token1 = createToken(1, 0, 1, 5, ["highlight"]);
 			const token2 = createToken(1, 3, 1, 8, ["hover"]);
-			const token3 = createToken(1, 10, 1, 15, ["definition"]);
+			const token3 = createToken(1, 10, 1, 15, ["symbolDefinition"]);
 			const token4 = createToken(1, 13, 1, 18, ["comment"]);
 			// Should split overlapping ranges into non-overlapping segments:
 			// [0-3): highlight only

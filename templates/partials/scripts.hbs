@@ -67,23 +67,34 @@
         {{/if}}
 
         {{#if features.definitionJumping}}
-        const clickableElements = document.querySelectorAll('[data-definition-file]');
+        // Setup definition jumping using browser native anchor links
+        const symbolLinks = document.querySelectorAll('a[href^="#symbol-"]');
 
-        // Setup click-to-definition functionality
-        clickableElements.forEach(function(element) {
-            element.addEventListener('click', function(e) {
+        symbolLinks.forEach(function(link) {
+            link.addEventListener('click', function(e) {
                 e.preventDefault();
-                e.stopPropagation();
 
-                const definitionFile = element.getAttribute('data-definition-file');
-                const definitionLine = parseInt(element.getAttribute('data-definition-line') || '0');
-                const definitionColumn = parseInt(element.getAttribute('data-definition-column') || '0');
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
 
-                if (definitionFile && definitionLine >= 0) {
-                    jumpToDefinition(definitionFile, definitionLine, definitionColumn);
+                if (targetElement) {
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    highlightDefinition(targetElement);
                 }
             });
         });
+
+        // Handle initial hash in URL
+        if (window.location.hash && window.location.hash.startsWith('#symbol-')) {
+            const targetId = window.location.hash.substring(1);
+            const targetElement = document.getElementById(targetId);
+            if (targetElement) {
+                setTimeout(() => {
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    highlightDefinition(targetElement);
+                }, 100);
+            }
+        }
         {{/if}}
 
         // Hide tooltip when clicking elsewhere
@@ -154,77 +165,6 @@
     }
 
     {{#if features.definitionJumping}}
-    function jumpToDefinition(filePath, line, column) {
-        // For now, we assume definition is in the same file
-        // TODO: Implement proper cross-file navigation based on project structure
-        console.log('Jumping to definition in:', filePath, 'line:', line, 'column:', column);
-
-        // Find elements that are located at the definition position
-        // We look for elements with data-token-position matching the target definition position
-        var allElements = document.querySelectorAll('[data-token-line]');
-        var bestMatch = null;
-        var bestDistance = Infinity;
-
-        for (var i = 0; i < allElements.length; i++) {
-            var element = allElements[i];
-            var tokenLine = parseInt(element.getAttribute('data-token-line') || '0');
-            var tokenColumn = parseInt(element.getAttribute('data-token-column') || '0');
-
-            // Check if this token is located at the target definition position
-            if (tokenLine === line) {
-                // This token is on the same line as the definition
-                // Calculate column distance to find the most precise match
-                var columnDistance = Math.abs(tokenColumn - column);
-                if (columnDistance < bestDistance) {
-                    bestDistance = columnDistance;
-                    bestMatch = element;
-                }
-            }
-        }
-
-        if (bestMatch) {
-            // Found the exact definition element
-            bestMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            highlightDefinition(bestMatch);
-            return;
-        }
-
-        // Fallback: try to find any element on the target line
-        var codeElements = document.querySelectorAll('pre code');
-        var currentLine = 0;
-
-        for (var j = 0; j < codeElements.length; j++) {
-            var codeElement = codeElements[j];
-            var lines = codeElement.textContent.split('\\n');
-
-            if (currentLine + lines.length > line) {
-                // Found the code block containing the target line
-                var relativeLine = line - currentLine;
-
-                // Find spans in this code block
-                var spans = codeElement.querySelectorAll('span');
-                for (var k = 0; k < spans.length; k++) {
-                    var span = spans[k];
-                    // Simple heuristic: check if span has any definition-related data
-                    if (span.getAttribute('data-definition-file') === filePath) {
-                        span.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        highlightDefinition(span);
-                        return;
-                    }
-                }
-
-                // If no specific span found, scroll to the code block
-                codeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                highlightDefinition(codeElement);
-                return;
-            }
-
-            currentLine += lines.length;
-        }
-
-        showNotification('Definition not found', 'warning');
-    }
-
     function highlightDefinition(element) {
         // Check if element is valid
         if (!element || !element.classList) {
@@ -247,7 +187,9 @@
             }
         }, 3000);
     }
+    {{/if}}
 
+    {{#if features.definitionJumping}}
     function showNotification(message, type) {
         type = type || 'info';
         // Create notification element

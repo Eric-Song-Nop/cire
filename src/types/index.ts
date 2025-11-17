@@ -64,7 +64,8 @@ export interface FileIR {
 export type MetaInfo =
 	| { type: "highlight"; highlightClasses: string[] }
 	| { type: "hover"; content: string; documentation?: string }
-	| { type: "definition"; filePath: string; pos: Position }
+	| { type: "symbolDefinition"; symbolId: string; symbolName: string }
+	| { type: "symbolReference"; symbolId: string; symbolName: string }
 	| { type: "comment" };
 
 export type TokenInfo = {
