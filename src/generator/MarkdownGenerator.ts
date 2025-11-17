@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import * as commentParser from "comment-parser";
+import type * as commentParser from "comment-parser";
 import type { FileIR, TokenInfo } from "../types";
 import { BaseGenerator } from "./BaseGenerator";
 
@@ -33,7 +33,7 @@ class MarkdownGenerator extends BaseGenerator {
 	 * Generate markdown content
 	 */
 	private generateContent(
-		fileIR: FileIR,
+		_fileIR: FileIR,
 		sourceContent: string,
 		info: TokenInfo[],
 	): string {
@@ -51,60 +51,42 @@ class MarkdownGenerator extends BaseGenerator {
 		}
 
 		// Markdown-style rendering approach
-		return this.generateMarkdownWithComments(fileIR, sourceContent, info);
+		return this.generateMarkdownStyleContent(
+			sourceContent,
+			info,
+			(content) => `<pre><code>${content}</code></pre>`,
+		);
 	}
 
 	/**
-	 * Render comment token to markdown with comment-parser integration
+	 * Render comment content for Markdown
 	 */
-	private renderCommentToken(commentText: string): string {
-		// comment-parser will handle comment markers automatically
-		const parsed = commentParser.parse(commentText);
-
-		if (parsed.length > 0 && parsed[0].tags.length > 0) {
-			// Has JSDoc tags, render as JSDoc
-			return this.renderJSDocComment(parsed[0]);
-		}
-
-		// Rebuild description with proper newlines from source lines
-		if (parsed.length > 0) {
-			const sourceLines = parsed[0].source;
-			const descriptions = sourceLines
-				.map((line) => line.tokens.description)
-				.filter((desc) => desc !== undefined);
-			const rebuiltDescription = descriptions.join("\n");
-
-			return `${rebuiltDescription}\n\n`;
-		}
-
-		// Should not happen, but handle empty parsed result
-		return `${commentText}\n\n`;
+	protected renderCommentContent(content: string): string {
+		return `${content}\n\n`;
 	}
 
 	/**
-	 * Render JSDoc comment using parsed comment-parser result
+	 * Render JSDoc description for Markdown
 	 */
-	private renderJSDocComment(jsdoc: commentParser.Block): string {
-		let markdown = "";
+	protected renderJSDocDescription(description: string): string {
+		return `${description}\n\n`;
+	}
 
-		// Render main description without HTML conversion
-		if (jsdoc.description) {
-			markdown += `${jsdoc.description}\n\n`;
-		}
-
-		// Render tags
-		markdown += "### Parameters & Returns\n\n";
-		for (const tag of jsdoc.tags) {
+	/**
+	 * Render JSDoc tags for Markdown
+	 */
+	protected renderJSDocTags(tags: commentParser.Spec[]): string {
+		let markdown = "### Parameters & Returns\n\n";
+		for (const tag of tags) {
 			markdown += this.renderJSDocTag(tag);
 		}
-
-		return `${markdown}\n\n`;
+		return markdown;
 	}
 
 	/**
-	 * Render individual JSDoc tag
+	 * Render individual JSDoc tag for Markdown
 	 */
-	private renderJSDocTag(tag: commentParser.Spec): string {
+	protected renderJSDocTag(tag: commentParser.Spec): string {
 		const tagName = tag.tag || "";
 		const name = tag.name || "";
 		const description = tag.description || "";
@@ -123,70 +105,12 @@ class MarkdownGenerator extends BaseGenerator {
 	}
 
 	/**
-	 * Generate markdown separating comments and code with syntax highlighting
+	 * Render JSDoc comment wrapper for Markdown
 	 */
-	private generateMarkdownWithComments(
-		_fileIR: FileIR,
-		sourceContent: string,
-		info: TokenInfo[],
-	): string {
-		const lines = sourceContent.split("\n");
-
-		// Extract comment tokens - already sorted by SortTokenPass
-		const commentTokens = info.filter((token) =>
-			token.meta.some((m) => m.type === "comment"),
-		);
-
-		// Get non-comment tokens for syntax highlighting - already sorted by SortTokenPass
-		const nonCommentTokens = info.filter(
-			(token) => !token.meta.some((m) => m.type === "comment"),
-		);
-
-		const result: string[] = [];
-		let currentLine = 0;
-
-		// Process each comment token and the code between them
-		for (const commentToken of commentTokens) {
-			const startLine = commentToken.span.start.line;
-			const endLine = commentToken.span.end.line;
-
-			// Add highlighted code before this comment (if any)
-			if (currentLine < startLine) {
-				const highlightedCode = this.generateHighlightedCodeSegment(
-					sourceContent,
-					currentLine,
-					startLine - 1,
-					nonCommentTokens,
-				);
-				if (highlightedCode.trim()) {
-					result.push(`<pre><code>${highlightedCode}</code></pre>`);
-				}
-			}
-
-			// Add the comment as markdown content
-			const commentLines = lines.slice(startLine, endLine + 1);
-			const commentText = commentLines.join("\n");
-			const renderedComment = this.renderCommentToken(commentText);
-			result.push(renderedComment);
-
-			currentLine = endLine + 1;
-		}
-
-		// Add remaining highlighted code after the last comment
-		if (currentLine < lines.length) {
-			const highlightedCode = this.generateHighlightedCodeSegment(
-				sourceContent,
-				currentLine,
-				lines.length - 1,
-				nonCommentTokens,
-			);
-			if (highlightedCode.trim()) {
-				result.push(`<pre><code>${highlightedCode}</code></pre>`);
-			}
-		}
-
-		// Join with newlines to ensure proper separation
-		return result.join("\n");
+	protected renderJSDocComment(jsdoc: commentParser.Block): string {
+		let markdown = this.renderJSDocDescription(jsdoc.description);
+		markdown += this.renderJSDocTags(jsdoc.tags);
+		return `${markdown}\n\n`;
 	}
 }
 export { MarkdownGenerator };
