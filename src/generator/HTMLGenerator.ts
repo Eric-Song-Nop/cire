@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import * as commentParser from "comment-parser";
+import type * as commentParser from "comment-parser";
 import { marked } from "marked";
 import {
 	HandlebarsTemplateEngine,
@@ -61,7 +61,7 @@ class HTMLGenerator extends BaseGenerator {
 	 * Generate HTML content (existing logic)
 	 */
 	private generateContent(
-		fileIR: FileIR,
+		_fileIR: FileIR,
 		sourceContent: string,
 		info: TokenInfo[],
 	): string {
@@ -80,7 +80,12 @@ class HTMLGenerator extends BaseGenerator {
 		}
 
 		// Markdown-style rendering approach
-		return this.generateMarkdownHTML(fileIR, sourceContent, info);
+		return this.generateMarkdownStyleContent(
+			sourceContent,
+			info,
+			(content) => `<pre><code>${content}</code></pre>`,
+			(content) => `<div class="markdown-content">${content}</div>`,
+		);
 	}
 
 	/**
@@ -136,59 +141,36 @@ class HTMLGenerator extends BaseGenerator {
 	}
 
 	/**
-	 * Render comment token to HTML with comment-parser integration
+	 * Render comment content for HTML
 	 */
-	private renderCommentToken(commentText: string): string {
-		// comment-parser will handle comment markers automatically
-		const parsed = commentParser.parse(commentText);
-
-		if (parsed.length > 0 && parsed[0].tags.length > 0) {
-			// Has JSDoc tags, render as JSDoc
-			return this.renderJSDocComment(parsed[0]);
-		}
-
-		// Rebuild description with proper newlines from source lines
-		if (parsed.length > 0) {
-			const sourceLines = parsed[0].source;
-			const descriptions = sourceLines
-				.map((line) => line.tokens.description)
-				.filter((desc) => desc !== undefined);
-			const rebuiltDescription = descriptions.join("\n");
-
-			const renderedContent = marked.parse(rebuiltDescription);
-			return `<div class="token-comment">${renderedContent}</div>`;
-		}
-
-		// Should not happen, but handle empty parsed result
-		const renderedContent = marked.parse(commentText);
+	protected renderCommentContent(content: string): string {
+		const renderedContent = marked.parse(content);
 		return `<div class="token-comment">${renderedContent}</div>`;
 	}
 
 	/**
-	 * Render JSDoc comment using parsed comment-parser result
+	 * Render JSDoc description for HTML
 	 */
-	private renderJSDocComment(jsdoc: commentParser.Block): string {
-		let html = "";
-
-		// Render main description using marked
-		if (jsdoc.description) {
-			html += `<div class="jsdoc-description">${marked.parseInline(jsdoc.description)}</div>`;
-		}
-
-		// Render tags
-		html += '<div class="jsdoc-tags">';
-		for (const tag of jsdoc.tags) {
-			html += this.renderJSDocTag(tag);
-		}
-		html += "</div>";
-
-		return `<span class="token-comment jsdoc-comment">${html}</span>`;
+	protected renderJSDocDescription(description: string): string {
+		return `<div class="jsdoc-description">${marked.parseInline(description)}</div>`;
 	}
 
 	/**
-	 * Render individual JSDoc tag
+	 * Render JSDoc tags for HTML
 	 */
-	private renderJSDocTag(tag: commentParser.Spec): string {
+	protected renderJSDocTags(tags: commentParser.Spec[]): string {
+		let html = '<div class="jsdoc-tags">';
+		for (const tag of tags) {
+			html += this.renderJSDocTag(tag);
+		}
+		html += "</div>";
+		return html;
+	}
+
+	/**
+	 * Render individual JSDoc tag for HTML
+	 */
+	protected renderJSDocTag(tag: commentParser.Spec): string {
 		const tagName = tag.tag || "";
 		const name = tag.name || "";
 		const description = tag.description || "";
@@ -207,70 +189,12 @@ class HTMLGenerator extends BaseGenerator {
 	}
 
 	/**
-	 * Generate Markdown-style HTML separating comments and code with syntax highlighting
+	 * Render JSDoc comment wrapper for HTML
 	 */
-	private generateMarkdownHTML(
-		_fileIR: FileIR,
-		sourceContent: string,
-		info: TokenInfo[],
-	): string {
-		const lines = sourceContent.split("\n");
-
-		// Extract comment tokens - already sorted by SortTokenPass
-		const commentTokens = info.filter((token) =>
-			token.meta.some((m) => m.type === "comment"),
-		);
-
-		// Get non-comment tokens for syntax highlighting - already sorted by SortTokenPass
-		const nonCommentTokens = info.filter(
-			(token) => !token.meta.some((m) => m.type === "comment"),
-		);
-
-		const result: string[] = [];
-		let currentLine = 0;
-
-		// Process each comment token and the code between them
-		for (const commentToken of commentTokens) {
-			const startLine = commentToken.span.start.line;
-			const endLine = commentToken.span.end.line;
-
-			// Add highlighted code before this comment (if any)
-			if (currentLine < startLine) {
-				const highlightedCode = this.generateHighlightedCodeSegment(
-					sourceContent,
-					currentLine,
-					startLine - 1,
-					nonCommentTokens,
-				);
-				if (highlightedCode.trim()) {
-					result.push(`<pre><code>${highlightedCode}</code></pre>`);
-				}
-			}
-
-			// Add the comment as markdown content
-			const commentLines = lines.slice(startLine, endLine + 1);
-			const commentText = commentLines.join("\n");
-			const renderedComment = this.renderCommentToken(commentText);
-			result.push(renderedComment);
-
-			currentLine = endLine + 1;
-		}
-
-		// Add remaining highlighted code after the last comment
-		if (currentLine < lines.length) {
-			const highlightedCode = this.generateHighlightedCodeSegment(
-				sourceContent,
-				currentLine,
-				lines.length - 1,
-				nonCommentTokens,
-			);
-			if (highlightedCode.trim()) {
-				result.push(`<pre><code>${highlightedCode}</code></pre>`);
-			}
-		}
-
-		const markdownContent = result.join("\n");
-		return `<div class="markdown-content">${markdownContent}</div>`;
+	protected renderJSDocComment(jsdoc: commentParser.Block): string {
+		let html = this.renderJSDocDescription(jsdoc.description);
+		html += this.renderJSDocTags(jsdoc.tags);
+		return `<span class="token-comment jsdoc-comment">${html}</span>`;
 	}
 }
 

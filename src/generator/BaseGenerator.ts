@@ -1,3 +1,4 @@
+import * as commentParser from "comment-parser";
 import { marked } from "marked";
 import { match } from "ts-pattern";
 import type {
@@ -339,6 +340,143 @@ abstract class BaseGenerator implements DocGenerator {
 		}
 
 		return wrapper(result);
+	}
+
+	/**
+	 * Render comment token - base implementation that can be overridden for different formats
+	 */
+	protected renderCommentToken(commentText: string): string {
+		// comment-parser will handle comment markers automatically
+		const parsed = commentParser.parse(commentText);
+
+		if (parsed.length > 0 && parsed[0].tags.length > 0) {
+			// Has JSDoc tags, render as JSDoc
+			return this.renderJSDocComment(parsed[0]);
+		}
+
+		// Rebuild description with proper newlines from source lines
+		if (parsed.length > 0) {
+			const sourceLines = parsed[0].source;
+			const descriptions = sourceLines
+				.map((line) => line.tokens.description)
+				.filter((desc) => desc !== undefined);
+			const rebuiltDescription = descriptions.join("\n");
+
+			return this.renderCommentContent(rebuiltDescription);
+		}
+
+		// Should not happen, but handle empty parsed result
+		return this.renderCommentContent(commentText);
+	}
+
+	/**
+	 * Render comment content - to be implemented by subclasses
+	 */
+	protected renderCommentContent(_content: string): string {
+		throw new Error("renderCommentContent must be implemented by subclass");
+	}
+
+	/**
+	 * Render JSDoc comment using parsed comment-parser result
+	 */
+	protected renderJSDocComment(jsdoc: commentParser.Block): string {
+		let result = this.renderJSDocDescription(jsdoc.description);
+
+		// Render tags
+		result += this.renderJSDocTags(jsdoc.tags);
+
+		return result;
+	}
+
+	/**
+	 * Render JSDoc description - to be implemented by subclasses
+	 */
+	protected renderJSDocDescription(_description: string): string {
+		throw new Error(
+			"renderJSDocDescription must be implemented by subclass",
+		);
+	}
+
+	/**
+	 * Render JSDoc tags - to be implemented by subclasses
+	 */
+	protected renderJSDocTags(_tags: commentParser.Spec[]): string {
+		throw new Error("renderJSDocTags must be implemented by subclass");
+	}
+
+	/**
+	 * Render individual JSDoc tag - to be implemented by subclasses
+	 */
+	protected renderJSDocTag(_tag: commentParser.Spec): string {
+		throw new Error("renderJSDocTag must be implemented by subclass");
+	}
+
+	/**
+	 * Generate markdown-style content separating comments and code with syntax highlighting
+	 */
+	protected generateMarkdownStyleContent(
+		sourceContent: string,
+		info: TokenInfo[],
+		wrapper: (content: string) => string,
+		contentWrapper: (content: string) => string = (c) => c,
+	): string {
+		const lines = sourceContent.split("\n");
+
+		// Extract comment tokens - already sorted by SortTokenPass
+		const commentTokens = info.filter((token) =>
+			token.meta.some((m) => m.type === "comment"),
+		);
+
+		// Get non-comment tokens for syntax highlighting - already sorted by SortTokenPass
+		const nonCommentTokens = info.filter(
+			(token) => !token.meta.some((m) => m.type === "comment"),
+		);
+
+		const result: string[] = [];
+		let currentLine = 0;
+
+		// Process each comment token and the code between them
+		for (const commentToken of commentTokens) {
+			const startLine = commentToken.span.start.line;
+			const endLine = commentToken.span.end.line;
+
+			// Add highlighted code before this comment (if any)
+			if (currentLine < startLine) {
+				const highlightedCode = this.generateHighlightedCodeSegment(
+					sourceContent,
+					currentLine,
+					startLine - 1,
+					nonCommentTokens,
+				);
+				if (highlightedCode.trim()) {
+					result.push(wrapper(highlightedCode));
+				}
+			}
+
+			// Add the comment as content
+			const commentLines = lines.slice(startLine, endLine + 1);
+			const commentText = commentLines.join("\n");
+			const renderedComment = this.renderCommentToken(commentText);
+			result.push(renderedComment);
+
+			currentLine = endLine + 1;
+		}
+
+		// Add remaining highlighted code after the last comment
+		if (currentLine < lines.length) {
+			const highlightedCode = this.generateHighlightedCodeSegment(
+				sourceContent,
+				currentLine,
+				lines.length - 1,
+				nonCommentTokens,
+			);
+			if (highlightedCode.trim()) {
+				result.push(wrapper(highlightedCode));
+			}
+		}
+
+		const content = result.join("\n");
+		return contentWrapper(content);
 	}
 
 	/**
