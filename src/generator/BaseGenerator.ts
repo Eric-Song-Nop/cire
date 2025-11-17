@@ -251,6 +251,97 @@ abstract class BaseGenerator implements DocGenerator {
 	}
 
 	/**
+	 * Generate highlighted content with tokens, preserving all source text
+	 */
+	protected generateHighlightedContent(
+		sourceContent: string,
+		tokens: TokenInfo[],
+		wrapper: (content: string) => string,
+	): string {
+		if (tokens.length === 0) {
+			// No highlight tokens, just escape and wrap
+			return wrapper(escapeHtml(sourceContent));
+		}
+
+		let result = "";
+		let currentOffset = 0;
+
+		// Process tokens in order
+		for (const token of tokens) {
+			const tokenStart = this.positionToOffset(
+				sourceContent,
+				token.span.start,
+			);
+			const tokenEnd = this.positionToOffset(
+				sourceContent,
+				token.span.end,
+			);
+
+			// Add text before token (unhighlighted but preserved)
+			if (tokenStart > currentOffset) {
+				const textBefore = sourceContent.slice(
+					currentOffset,
+					tokenStart,
+				);
+				result += escapeHtml(textBefore);
+			}
+
+			// Add token with CSS classes and hover data
+			const tokenText = sourceContent.slice(tokenStart, tokenEnd);
+			const tokenInfo = this.extractTokenInfo(token.meta);
+
+			if (
+				tokenInfo.classes.length > 0 ||
+				tokenInfo.hoverContent ||
+				tokenInfo.definitionInfo
+			) {
+				const classAttr =
+					tokenInfo.classes.length > 0
+						? ` class="${tokenInfo.classes.join(" ")}"`
+						: "";
+
+				let dataAttrs = "";
+				if (
+					tokenInfo.hoverContent &&
+					this.config.features?.hoverDocumentation
+				) {
+					dataAttrs += ` data-hover-content="${escapeHtml(tokenInfo.hoverContent)}"`;
+					if (tokenInfo.hoverDocumentation) {
+						// For HTML, escape the documentation; for Markdown, keep as-is
+						const shouldEscape =
+							!this.config.features?.commentMarkdown;
+						dataAttrs += ` data-hover-documentation="${shouldEscape ? escapeHtml(tokenInfo.hoverDocumentation) : tokenInfo.hoverDocumentation}"`;
+					}
+				}
+				if (tokenInfo.definitionInfo) {
+					dataAttrs += ` data-definition-file="${escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
+					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
+					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
+
+					// Also store this token's own position for definition jumping
+					dataAttrs += ` data-token-line="${token.span.start.line}"`;
+					dataAttrs += ` data-token-column="${token.span.start.column}"`;
+				}
+
+				result += `<span${classAttr}${dataAttrs}>${escapeHtml(tokenText)}</span>`;
+			} else {
+				// No classes or hover info, just escape the text
+				result += escapeHtml(tokenText);
+			}
+
+			currentOffset = tokenEnd;
+		}
+
+		// Add remaining text after last token
+		if (currentOffset < sourceContent.length) {
+			const remainingText = sourceContent.slice(currentOffset);
+			result += escapeHtml(remainingText);
+		}
+
+		return wrapper(result);
+	}
+
+	/**
 	 * Abstract method to generate documentation - must be implemented by subclasses
 	 */
 	abstract generate(

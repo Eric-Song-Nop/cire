@@ -3,7 +3,6 @@ import * as path from "node:path";
 import * as commentParser from "comment-parser";
 import type { FileIR, TokenInfo } from "../types";
 import { BaseGenerator } from "./BaseGenerator";
-import { escapeHtml } from "./Escapes";
 
 /**
  * MarkdownGenerator - Generates markdown documentation from source code with syntax highlighting,
@@ -201,87 +200,11 @@ class MarkdownGenerator extends BaseGenerator {
 		sourceContent: string,
 		tokens: TokenInfo[],
 	): string {
-		if (tokens.length === 0) {
-			// No highlight tokens, just escape and wrap in <code>
-			// Use HTML escaping for content inside <pre><code> blocks
-			return this.wrapCodeBlock(escapeHtml(sourceContent));
-		}
-
-		let result = "";
-		let currentOffset = 0;
-
-		// Process tokens in order
-		for (const token of tokens) {
-			const tokenStart = this.positionToOffset(
-				sourceContent,
-				token.span.start,
-			);
-			const tokenEnd = this.positionToOffset(
-				sourceContent,
-				token.span.end,
-			);
-
-			// Add text before token (unhighlighted but preserved)
-			if (tokenStart > currentOffset) {
-				const textBefore = sourceContent.slice(
-					currentOffset,
-					tokenStart,
-				);
-				result += escapeHtml(textBefore);
-			}
-
-			// Add token with CSS classes and hover data
-			const tokenText = sourceContent.slice(tokenStart, tokenEnd);
-			const tokenInfo = this.extractTokenInfo(token.meta);
-
-			if (
-				tokenInfo.classes.length > 0 ||
-				tokenInfo.hoverContent ||
-				tokenInfo.definitionInfo
-			) {
-				const classAttr =
-					tokenInfo.classes.length > 0
-						? ` class="${tokenInfo.classes.join(" ")}"`
-						: "";
-
-				let dataAttrs = "";
-				if (
-					tokenInfo.hoverContent &&
-					this.config.features?.hoverDocumentation
-				) {
-					dataAttrs += ` data-hover-content="${escapeHtml(tokenInfo.hoverContent)}"`;
-					if (tokenInfo.hoverDocumentation) {
-						// hoverDocumentation is already HTML from marked.parse(), don't escape it
-						dataAttrs += ` data-hover-documentation="${tokenInfo.hoverDocumentation}"`;
-					}
-				}
-				if (tokenInfo.definitionInfo) {
-					dataAttrs += ` data-definition-file="${escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
-					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
-					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
-
-					// Also store this token's own position for definition jumping
-					dataAttrs += ` data-token-line="${token.span.start.line}"`;
-					dataAttrs += ` data-token-column="${token.span.start.column}"`;
-				}
-
-				result += `<span${classAttr}${dataAttrs}>${escapeHtml(tokenText)}</span>`;
-			} else {
-				// No classes or hover info, just escape the text
-				result += escapeHtml(tokenText);
-			}
-
-			currentOffset = tokenEnd;
-		}
-
-		// Add remaining text after last token
-		if (currentOffset < sourceContent.length) {
-			const remainingText = sourceContent.slice(currentOffset);
-			result += escapeHtml(remainingText);
-		}
-
-		// Ensure the result preserves newlines properly for markdown rendering
-		return this.wrapCodeBlock(result);
+		return this.generateHighlightedContent(
+			sourceContent,
+			tokens,
+			(content) => this.wrapCodeBlock(content),
+		);
 	}
 }
 
