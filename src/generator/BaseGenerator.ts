@@ -42,15 +42,22 @@ abstract class BaseGenerator implements DocGenerator {
 		classes: string[];
 		hoverContent?: string;
 		hoverDocumentation?: string;
-		definitionInfo?: {
-			filePath: string;
-			pos: Position;
+		symbolInfo?: {
+			type: "definition" | "reference";
+			symbolId: string;
+			symbolName: string;
 		};
 	} {
 		const classes: string[] = [];
 		let hoverContent: string | undefined;
 		let hoverDocumentation: string | undefined;
-		let definitionInfo: { filePath: string; pos: Position } | undefined;
+		let symbolInfo:
+			| {
+					type: "definition" | "reference";
+					symbolId: string;
+					symbolName: string;
+			  }
+			| undefined;
 
 		meta.forEach((m) => {
 			match(m)
@@ -70,11 +77,20 @@ abstract class BaseGenerator implements DocGenerator {
 						}
 					}
 				})
-				.with({ type: "definition" }, (md) => {
-					classes.push("token-clickable", "token-definition");
-					definitionInfo = {
-						filePath: md.filePath,
-						pos: md.pos,
+				.with({ type: "symbolDefinition" }, (md) => {
+					classes.push("token-definition");
+					symbolInfo = {
+						type: "definition",
+						symbolId: md.symbolId,
+						symbolName: md.symbolName,
+					};
+				})
+				.with({ type: "symbolReference" }, (md) => {
+					classes.push("token-reference", "token-clickable");
+					symbolInfo = {
+						type: "reference",
+						symbolId: md.symbolId,
+						symbolName: md.symbolName,
 					};
 				})
 				.with({ type: "comment" }, () => {})
@@ -85,7 +101,7 @@ abstract class BaseGenerator implements DocGenerator {
 			classes,
 			hoverContent,
 			hoverDocumentation,
-			definitionInfo,
+			symbolInfo,
 		};
 	}
 
@@ -206,16 +222,19 @@ abstract class BaseGenerator implements DocGenerator {
 			const tokenText = sourceContent.slice(tokenStart, tokenEnd);
 			const tokenInfo = this.extractTokenInfo(token.meta);
 
-			if (
+			const shouldWrap =
 				tokenInfo.classes.length > 0 ||
 				tokenInfo.hoverContent ||
-				tokenInfo.definitionInfo
-			) {
+				tokenInfo.symbolInfo;
+
+			if (shouldWrap) {
 				const classAttr =
 					tokenInfo.classes.length > 0
 						? ` class="${tokenInfo.classes.join(" ")}"`
 						: "";
 				let dataAttrs = "";
+
+				// Add hover data attributes
 				if (
 					tokenInfo.hoverContent &&
 					this.config.features?.hoverDocumentation
@@ -225,15 +244,21 @@ abstract class BaseGenerator implements DocGenerator {
 						dataAttrs += ` data-hover-documentation="${escapeHtml(tokenInfo.hoverDocumentation)}"`;
 					}
 				}
-				if (tokenInfo.definitionInfo) {
-					dataAttrs += ` data-definition-file="${escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
-					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
-					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
 
-					// Also store this token's own position for definition jumping
-					dataAttrs += ` data-token-line="${token.span.start.line}"`;
-					dataAttrs += ` data-token-column="${token.span.start.column}"`;
+				// Add symbol-specific attributes for id/href approach
+				if (tokenInfo.symbolInfo) {
+					if (tokenInfo.symbolInfo.type === "definition") {
+						// Definition: add id
+						dataAttrs += ` id="${escapeHtml(tokenInfo.symbolInfo.symbolId)}"`;
+					} else {
+						// Reference: add href and wrap as anchor
+						dataAttrs += ` href="#${escapeHtml(tokenInfo.symbolInfo.symbolId)}"`;
+						result += `<a${classAttr}${dataAttrs}>${escapeHtml(tokenText)}</a>`;
+						currentOffset = tokenEnd;
+						continue;
+					}
 				}
+
 				result += `<span${classAttr}${dataAttrs}>${escapeHtml(tokenText)}</span>`;
 			} else {
 				result += escapeHtml(tokenText);
@@ -291,17 +316,20 @@ abstract class BaseGenerator implements DocGenerator {
 			const tokenText = sourceContent.slice(tokenStart, tokenEnd);
 			const tokenInfo = this.extractTokenInfo(token.meta);
 
-			if (
+			const shouldWrap =
 				tokenInfo.classes.length > 0 ||
 				tokenInfo.hoverContent ||
-				tokenInfo.definitionInfo
-			) {
+				tokenInfo.symbolInfo;
+
+			if (shouldWrap) {
 				const classAttr =
 					tokenInfo.classes.length > 0
 						? ` class="${tokenInfo.classes.join(" ")}"`
 						: "";
 
 				let dataAttrs = "";
+
+				// Add hover data attributes
 				if (
 					tokenInfo.hoverContent &&
 					this.config.features?.hoverDocumentation
@@ -314,14 +342,19 @@ abstract class BaseGenerator implements DocGenerator {
 						dataAttrs += ` data-hover-documentation="${shouldEscape ? escapeHtml(tokenInfo.hoverDocumentation) : tokenInfo.hoverDocumentation}"`;
 					}
 				}
-				if (tokenInfo.definitionInfo) {
-					dataAttrs += ` data-definition-file="${escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
-					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
-					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
 
-					// Also store this token's own position for definition jumping
-					dataAttrs += ` data-token-line="${token.span.start.line}"`;
-					dataAttrs += ` data-token-column="${token.span.start.column}"`;
+				// Add symbol-specific attributes for id/href approach
+				if (tokenInfo.symbolInfo) {
+					if (tokenInfo.symbolInfo.type === "definition") {
+						// Definition: add id
+						dataAttrs += ` id="${escapeHtml(tokenInfo.symbolInfo.symbolId)}"`;
+					} else {
+						// Reference: add href and wrap as anchor
+						dataAttrs += ` href="#${escapeHtml(tokenInfo.symbolInfo.symbolId)}"`;
+						result += `<a${classAttr}${dataAttrs}>${escapeHtml(tokenText)}</a>`;
+						currentOffset = tokenEnd;
+						continue;
+					}
 				}
 
 				result += `<span${classAttr}${dataAttrs}>${escapeHtml(tokenText)}</span>`;

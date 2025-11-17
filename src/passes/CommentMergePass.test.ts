@@ -104,9 +104,9 @@ describe("CommentMergePass", () => {
 					},
 					meta: [
 						{
-							type: "definition",
-							filePath: "test.ts",
-							pos: { line: 1, column: 0 },
+							type: "symbolDefinition",
+							symbolId: "test-symbol-1",
+							symbolName: "TestSymbol",
 						},
 					],
 				},
@@ -121,9 +121,9 @@ describe("CommentMergePass", () => {
 			expect(result[1].meta).toEqual([{ type: "comment" }]);
 			expect(result[2].meta).toEqual([
 				{
-					type: "definition",
-					filePath: "test.ts",
-					pos: { line: 1, column: 0 },
+					type: "symbolDefinition",
+					symbolId: "test-symbol-1",
+					symbolName: "TestSymbol",
 				},
 			]);
 		});
@@ -462,9 +462,9 @@ describe("CommentMergePass", () => {
 					},
 					meta: [
 						{
-							type: "definition",
-							filePath: "test.ts",
-							pos: { line: 1, column: 0 },
+							type: "symbolDefinition",
+							symbolId: "test-symbol-1",
+							symbolName: "TestSymbol",
 						},
 					],
 				},

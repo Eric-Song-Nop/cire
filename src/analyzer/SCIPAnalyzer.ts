@@ -105,6 +105,30 @@ export class SCIPAnalyzer implements Analyzer {
 			if (!span) continue;
 			const meta: MetaInfo[] = [];
 
+			// Generate symbol ID for this occurrence
+			const symbolId = this.generateSymbolId(occurrence.symbol);
+			const symbolName = sym.display_name;
+
+			// Check if this is a definition or reference
+			const isDefinition =
+				(occurrence.symbol_roles & scip.SymbolRole.Definition) !== 0;
+
+			if (isDefinition) {
+				// This is a definition token
+				meta.push({
+					type: "symbolDefinition",
+					symbolId,
+					symbolName,
+				});
+			} else {
+				// This is a reference token
+				meta.push({
+					type: "symbolReference",
+					symbolId,
+					symbolName,
+				});
+			}
+
 			// Resolve complete documentation with priority hierarchy
 			const documentation = this.resolveDocumentation(occurrence, sym);
 			if (documentation) {
@@ -115,14 +139,6 @@ export class SCIPAnalyzer implements Analyzer {
 				});
 			}
 
-			if (occurrence.symbol in symbolDefSpan) {
-				meta.push({
-					type: "definition",
-					filePath: fileIR.relativePath,
-					pos: symbolDefSpan[occurrence.symbol],
-				});
-			}
-
 			infos.push({
 				meta,
 				span,
@@ -130,6 +146,14 @@ export class SCIPAnalyzer implements Analyzer {
 		}
 
 		return infos;
+	}
+
+	/**
+	 * Generate HTML-compatible symbol ID from SCIP symbol
+	 */
+	private generateSymbolId(symbol: string): string {
+		// Replace non-alphanumeric characters with underscores
+		return `symbol-${symbol.replace(/[^a-zA-Z0-9]/g, "_")}`;
 	}
 
 	/**

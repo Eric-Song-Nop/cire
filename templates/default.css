@@ -29,6 +29,11 @@
     --syntax-punctuation: #333333;
     --syntax-definition: #ff6600;
 
+    /* Symbol reference link colors */
+    --syntax-reference: #0066cc;
+    --syntax-reference-hover: #0052a3;
+    --syntax-reference-active: #003d7a;
+
     /* Notification colors - light theme */
     --notification-info-bg: #2196f3;
     --notification-warning-bg: #ff9800;
@@ -70,6 +75,11 @@
     --syntax-operator: #d4d4d4;
     --syntax-punctuation: #d4d4d4;
     --syntax-definition: #c586c0;
+
+    /* Symbol reference link colors - dark theme */
+    --syntax-reference: #75beff;
+    --syntax-reference-hover: #569cd6;
+    --syntax-reference-active: #3c5d9e;
 
     /* Notification colors - dark theme */
     --notification-info-bg: #1976d2;
@@ -398,9 +408,36 @@ code {
 .token-builtin { color: var(--syntax-function); font-weight: bold; }
 .token-variable { color: var(--syntax-variable); }
 .token-parameter { color: var(--syntax-variable); font-style: italic; }
-.token-definition { font-weight: bold; border-bottom: 2px solid var(--syntax-definition); }
+.token-definition {
+    font-weight: bold;
+    border-bottom: 2px solid var(--syntax-definition);
+    scroll-margin-top: 20px; /* Ensure definition is visible when jumping to it */
+}
 
-/* Clickable token styles */
+/* Symbol reference styles (links to definitions) */
+.token-reference {
+    color: var(--syntax-variable);
+    text-decoration: underline;
+    text-decoration-color: var(--syntax-reference);
+    text-decoration-style: solid;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    transition: all 0.2s ease;
+}
+
+.token-reference:hover {
+    color: var(--syntax-reference-hover);
+    text-decoration-color: var(--syntax-reference-hover);
+    background-color: var(--hover-bg);
+    border-radius: 2px;
+}
+
+.token-reference:active {
+    color: var(--syntax-reference-active);
+    text-decoration-color: var(--syntax-reference-active);
+}
+
+/* Clickable token styles (for backward compatibility) */
 .token-clickable {
     cursor: pointer;
     transition: all 0.2s ease;
