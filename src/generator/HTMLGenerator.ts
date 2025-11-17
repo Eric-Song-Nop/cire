@@ -14,6 +14,7 @@ import type {
 	Position,
 	TokenInfo,
 } from "../types";
+import { escapeHtml } from "./Escapes";
 
 /**
  * We turn the source code with Highlight Info into HTML
@@ -41,18 +42,6 @@ class HTMLGenerator implements DocGenerator {
 		}
 
 		return offset + pos.column;
-	}
-
-	/**
-	 * Escape HTML special characters to prevent rendering issues
-	 */
-	private escapeHtml(text: string): string {
-		return text
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;")
-			.replace(/'/g, "&#039;");
 	}
 
 	/**
@@ -87,9 +76,7 @@ class HTMLGenerator implements DocGenerator {
 						} catch (error) {
 							console.warn(error);
 							// Fallback to escaped documentation if marked fails
-							hoverDocumentation = this.escapeHtml(
-								mh.documentation,
-							);
+							hoverDocumentation = escapeHtml(mh.documentation);
 						}
 					}
 				})
@@ -285,7 +272,7 @@ class HTMLGenerator implements DocGenerator {
 		let tagContent = `<span class="jsdoc-tag-name">@${tagName}</span>`;
 
 		if (name) {
-			tagContent += ` <span class="jsdoc-tag-name">${this.escapeHtml(name)}</span>`;
+			tagContent += ` <span class="jsdoc-tag-name">${escapeHtml(name)}</span>`;
 		}
 
 		if (description) {
@@ -411,7 +398,7 @@ class HTMLGenerator implements DocGenerator {
 
 			if (lineTokens.length === 0) {
 				// No tokens for this line, just add the escaped line
-				result += `${this.escapeHtml(line)}\n`;
+				result += `${escapeHtml(line)}\n`;
 			} else {
 				// Process tokens on this line
 				const lineContent = this.processTokensOnLine(
@@ -472,7 +459,7 @@ class HTMLGenerator implements DocGenerator {
 					currentOffset,
 					tokenStart,
 				);
-				result += this.escapeHtml(textBefore);
+				result += escapeHtml(textBefore);
 			}
 
 			// Add token with styling
@@ -493,13 +480,13 @@ class HTMLGenerator implements DocGenerator {
 					tokenInfo.hoverContent &&
 					this.config.features?.hoverDocumentation
 				) {
-					dataAttrs += ` data-hover-content="${this.escapeHtml(tokenInfo.hoverContent)}"`;
+					dataAttrs += ` data-hover-content="${escapeHtml(tokenInfo.hoverContent)}"`;
 					if (tokenInfo.hoverDocumentation) {
-						dataAttrs += ` data-hover-documentation="${this.escapeHtml(tokenInfo.hoverDocumentation)}"`;
+						dataAttrs += ` data-hover-documentation="${escapeHtml(tokenInfo.hoverDocumentation)}"`;
 					}
 				}
 				if (tokenInfo.definitionInfo) {
-					dataAttrs += ` data-definition-file="${this.escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
+					dataAttrs += ` data-definition-file="${escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
 					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
 					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
 
@@ -507,9 +494,9 @@ class HTMLGenerator implements DocGenerator {
 					dataAttrs += ` data-token-line="${token.span.start.line}"`;
 					dataAttrs += ` data-token-column="${token.span.start.column}"`;
 				}
-				result += `<span${classAttr}${dataAttrs}>${this.escapeHtml(tokenText)}</span>`;
+				result += `<span${classAttr}${dataAttrs}>${escapeHtml(tokenText)}</span>`;
 			} else {
-				result += this.escapeHtml(tokenText);
+				result += escapeHtml(tokenText);
 			}
 
 			currentOffset = tokenEnd;
@@ -518,7 +505,7 @@ class HTMLGenerator implements DocGenerator {
 		// Add remaining text after last token
 		if (currentOffset < lineEndOffset) {
 			const textAfter = sourceContent.slice(currentOffset, lineEndOffset);
-			result += this.escapeHtml(textAfter);
+			result += escapeHtml(textAfter);
 		}
 
 		return result;
@@ -533,7 +520,7 @@ class HTMLGenerator implements DocGenerator {
 	): string {
 		if (tokens.length === 0) {
 			// No highlight tokens, just escape and wrap in pre/code
-			return `<pre><code>${this.escapeHtml(sourceContent)}</code></pre>`;
+			return `<pre><code>${escapeHtml(sourceContent)}</code></pre>`;
 		}
 
 		let result = "";
@@ -556,7 +543,7 @@ class HTMLGenerator implements DocGenerator {
 					currentOffset,
 					tokenStart,
 				);
-				result += this.escapeHtml(textBefore);
+				result += escapeHtml(textBefore);
 			}
 
 			// Add token with CSS classes and hover data
@@ -578,13 +565,13 @@ class HTMLGenerator implements DocGenerator {
 					tokenInfo.hoverContent &&
 					this.config.features?.hoverDocumentation
 				) {
-					dataAttrs += ` data-hover-content="${this.escapeHtml(tokenInfo.hoverContent)}"`;
+					dataAttrs += ` data-hover-content="${escapeHtml(tokenInfo.hoverContent)}"`;
 					if (tokenInfo.hoverDocumentation) {
-						dataAttrs += ` data-hover-documentation="${this.escapeHtml(tokenInfo.hoverDocumentation)}"`;
+						dataAttrs += ` data-hover-documentation="${escapeHtml(tokenInfo.hoverDocumentation)}"`;
 					}
 				}
 				if (tokenInfo.definitionInfo) {
-					dataAttrs += ` data-definition-file="${this.escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
+					dataAttrs += ` data-definition-file="${escapeHtml(tokenInfo.definitionInfo.filePath)}"`;
 					dataAttrs += ` data-definition-line="${tokenInfo.definitionInfo.pos.line}"`;
 					dataAttrs += ` data-definition-column="${tokenInfo.definitionInfo.pos.column}"`;
 
@@ -593,10 +580,10 @@ class HTMLGenerator implements DocGenerator {
 					dataAttrs += ` data-token-column="${token.span.start.column}"`;
 				}
 
-				result += `<span${classAttr}${dataAttrs}>${this.escapeHtml(tokenText)}</span>`;
+				result += `<span${classAttr}${dataAttrs}>${escapeHtml(tokenText)}</span>`;
 			} else {
 				// No classes or hover info, just escape the text
-				result += this.escapeHtml(tokenText);
+				result += escapeHtml(tokenText);
 			}
 
 			currentOffset = tokenEnd;
@@ -605,7 +592,7 @@ class HTMLGenerator implements DocGenerator {
 		// Add remaining text after last token
 		if (currentOffset < sourceContent.length) {
 			const remainingText = sourceContent.slice(currentOffset);
-			result += this.escapeHtml(remainingText);
+			result += escapeHtml(remainingText);
 		}
 
 		return `<pre><code>${result}</code></pre>`;
