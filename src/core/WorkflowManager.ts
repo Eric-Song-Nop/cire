@@ -2,6 +2,7 @@ import { CommentAnalyzer } from "../analyzer/CommentAnalyzer";
 import { SCIPAnalyzer } from "../analyzer/SCIPAnalyzer";
 import { TSHighLighter } from "../analyzer/TSHighlighter";
 import { HTMLGenerator } from "../generator/HTMLGenerator";
+import { MarkdownGenerator } from "../generator/MarkdownGenerator";
 import { CommentMergePass, MergeTokenPass, SortTokenPass } from "../passes";
 import type { CireConfig, FileIR, TokenInfo } from "../types";
 
@@ -9,7 +10,7 @@ export class WorkflowManager {
 	private tsHighlighter: TSHighLighter;
 	private scipAnalyzer: SCIPAnalyzer | null = null;
 	private commentAnalyzer: CommentAnalyzer;
-	private htmlGenerator: HTMLGenerator;
+	private generator: HTMLGenerator | MarkdownGenerator;
 	private config: CireConfig;
 
 	constructor(config: CireConfig) {
@@ -18,7 +19,14 @@ export class WorkflowManager {
 		// Initialize components
 		this.tsHighlighter = new TSHighLighter(config.input.language);
 		this.commentAnalyzer = new CommentAnalyzer();
-		this.htmlGenerator = new HTMLGenerator(config);
+
+		// Initialize generator based on output format
+		const backend = config.outputFormat?.backend || "html";
+		if (backend === "markdown") {
+			this.generator = new MarkdownGenerator(config);
+		} else {
+			this.generator = new HTMLGenerator(config);
+		}
 
 		// Initialize SCIP analyzer if SCIP index path is provided
 		// Note: SCIPAnalyzer provides both hover documentation AND definition jumping functionality
@@ -72,16 +80,17 @@ export class WorkflowManager {
 		const mergedTokens = this.mergeTokens(allTokens);
 		console.log(`    Final count: ${mergedTokens.length} unique tokens`);
 
-		// Step 5: Generate HTML
-		console.log("  → Generating HTML...");
-		const html = this.htmlGenerator.generate(
+		// Step 5: Generate output
+		const backend = this.config.outputFormat?.backend || "html";
+		console.log(`  → Generating ${backend.toUpperCase()}...`);
+		const output = this.generator.generate(
 			fileIR,
 			mergedTokens,
 			projectRoot,
 		);
-		console.log("  → HTML generation complete!");
+		console.log(`  → ${backend.toUpperCase()} generation complete!`);
 
-		return html;
+		return output;
 	}
 
 	/**

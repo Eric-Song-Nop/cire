@@ -112,8 +112,12 @@ export class NavigationGenerator {
 	/**
 	 * Save navigation page to output directory
 	 */
-	async saveNavigationPage(html: string, outputDir: string): Promise<void> {
-		const indexPath = path.join(outputDir, "cireIndex.html");
+	async saveNavigationPage(
+		html: string,
+		outputDir: string,
+		fileName: string = "cireIndex.html",
+	): Promise<void> {
+		const indexPath = path.join(outputDir, fileName);
 		fs.writeFileSync(indexPath, html, "utf-8");
 	}
 }

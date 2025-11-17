@@ -40,6 +40,10 @@ export interface CireConfig {
 		templateDir?: string; // Custom template directory path
 		customCSS?: string; // Path to custom CSS file
 	};
+	// Output format configuration
+	outputFormat?: {
+		backend?: "html" | "markdown"; // Output format backend
+	};
 	// Feature flags
 	features?: {
 		syntaxHighlighting?: boolean; // Enable syntax highlighting
