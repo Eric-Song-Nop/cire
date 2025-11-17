@@ -72,7 +72,11 @@ class HTMLGenerator extends BaseGenerator {
 
 		if (!hasCommentTokens) {
 			// Tokens are already sorted by SortTokenPass
-			return this.generateHighlightedHTML(sourceContent, info);
+			return this.generateHighlightedContent(
+				sourceContent,
+				info,
+				(content) => `<pre><code>${content}</code></pre>`,
+			);
 		}
 
 		// Markdown-style rendering approach
@@ -267,20 +271,6 @@ class HTMLGenerator extends BaseGenerator {
 
 		const markdownContent = result.join("\n");
 		return `<div class="markdown-content">${markdownContent}</div>`;
-	}
-
-	/**
-	 * Generate HTML with highlighted tokens, preserving all source text
-	 */
-	private generateHighlightedHTML(
-		sourceContent: string,
-		tokens: TokenInfo[],
-	): string {
-		return this.generateHighlightedContent(
-			sourceContent,
-			tokens,
-			(content) => `<pre><code>${content}</code></pre>`,
-		);
 	}
 }
 
