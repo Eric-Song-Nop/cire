@@ -66,7 +66,8 @@ export type MetaInfo =
 	| { type: "hover"; content: string; documentation?: string }
 	| { type: "symbolDefinition"; symbolId: string; symbolName: string }
 	| { type: "symbolReference"; symbolId: string; symbolName: string }
-	| { type: "comment" };
+	| { type: "comment" }
+	| { type: "plaintext" };
 
 export type TokenInfo = {
 	meta: MetaInfo[];
@@ -141,3 +142,4 @@ export class GenerationError extends CireError {
 		this.name = "GenerationError";
 	}
 }
+
