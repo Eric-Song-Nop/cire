@@ -5,6 +5,7 @@
  */
 
 export { CommentMergePass } from "./CommentMergePass";
+export { FillPlaintextPass } from "./FillPlaintextPass";
 export { MergeTokenPass } from "./MergeTokenPass";
 export { SortTokenPass } from "./SortTokenPass";
 export { TokenInfoPass } from "./TokenInfoPass";

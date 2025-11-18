@@ -23,8 +23,14 @@ abstract class BaseGenerator implements DocGenerator {
 
 	/**
 	 * Convert position to character offset in source text
+	 * Special case: if pos is (-1, -1), return text.length (end of file)
 	 */
 	protected positionToOffset(text: string, pos: Position): number {
+		// Special marker for end of file
+		if (pos.line === -1 && pos.column === -1) {
+			return text.length;
+		}
+
 		const lines = text.split("\n");
 		let offset = 0;
 
@@ -47,6 +53,7 @@ abstract class BaseGenerator implements DocGenerator {
 			symbolId: string;
 			symbolName: string;
 		};
+		isPlaintext: boolean;
 	} {
 		const classes: string[] = [];
 		let hoverContent: string | undefined;
@@ -58,6 +65,7 @@ abstract class BaseGenerator implements DocGenerator {
 					symbolName: string;
 			  }
 			| undefined;
+		let isPlaintext = false;
 
 		meta.forEach((m) => {
 			match(m)
@@ -94,6 +102,9 @@ abstract class BaseGenerator implements DocGenerator {
 					};
 				})
 				.with({ type: "comment" }, () => {})
+				.with({ type: "plaintext" }, () => {
+					isPlaintext = true;
+				})
 				.exhaustive();
 		});
 
@@ -102,6 +113,7 @@ abstract class BaseGenerator implements DocGenerator {
 			hoverContent,
 			hoverDocumentation,
 			symbolInfo,
+			isPlaintext,
 		};
 	}
 
@@ -315,6 +327,13 @@ abstract class BaseGenerator implements DocGenerator {
 			// Add token with CSS classes and hover data
 			const tokenText = sourceContent.slice(tokenStart, tokenEnd);
 			const tokenInfo = this.extractTokenInfo(token.meta);
+
+			// Simplified logic: if plaintext, just escape and continue
+			if (tokenInfo.isPlaintext) {
+				result += escapeHtml(tokenText);
+				currentOffset = tokenEnd;
+				continue;
+			}
 
 			const shouldWrap =
 				tokenInfo.classes.length > 0 ||
