@@ -142,4 +142,3 @@ export class GenerationError extends CireError {
 		this.name = "GenerationError";
 	}
 }
-

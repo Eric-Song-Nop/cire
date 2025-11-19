@@ -5,18 +5,13 @@
  */
 
 import type { TokenInfo } from "../types";
+import { comparePositions } from "../utils/position-utils";
 import type { TokenInfoPass } from "./TokenInfoPass";
 
 export class SortTokenPass implements TokenInfoPass {
 	process(tokens: TokenInfo[]): TokenInfo[] {
 		return tokens.sort((a, b) => {
-			// First compare start line
-			if (a.span.start.line !== b.span.start.line) {
-				return a.span.start.line - b.span.start.line;
-			}
-
-			// If on same line, compare start column
-			return a.span.start.column - b.span.start.column;
+			return comparePositions(a.span.start, b.span.start);
 		});
 	}
 }

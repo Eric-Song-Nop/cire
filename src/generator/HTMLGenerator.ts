@@ -1,32 +1,47 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type * as commentParser from "comment-parser";
+import { parse } from "comment-parser";
 import { marked } from "marked";
-import {
-	HandlebarsTemplateEngine,
-	type TemplateData,
-} from "../template/HandlebarsTemplateEngine";
-import type { CireConfig, FileIR, TokenInfo } from "../types";
-import { BaseGenerator } from "./BaseGenerator";
-import { escapeHtml } from "./Escapes";
+import { match } from "ts-pattern";
+import type {
+	CireConfig,
+	DocGenerator,
+	FileIR,
+	Position,
+	TextSpan,
+	TokenInfo,
+} from "../types";
 
 /**
- * We turn the source code with Highlight Info into HTML
- * Only syntax highlighting is considered - hover and definition are ignored for now
+ * MarkdownGenerator - Generates markdown documentation from source code with syntax highlighting,
+ * hover documentation, and definition jumping capabilities using <code> regions instead of markdown code blocks.
  */
-class HTMLGenerator extends BaseGenerator {
-	private templateEngine: HandlebarsTemplateEngine;
+class HTMLGenerator implements DocGenerator {
+	private sourceContent: string = "";
+	private sourceCode: string[] = [];
+	private tokens: TokenInfo[] = [];
+	private _config: CireConfig;
 
 	constructor(config: CireConfig) {
-		super(config);
-		const defaultTemplateDir = path.join(__dirname, "../../templates");
-		const templateDir = config.template?.templateDir || defaultTemplateDir;
-		this.templateEngine = new HandlebarsTemplateEngine(templateDir);
+		this._config = config;
 	}
 
-	/**
-	 * Generate HTML from FileIR and TokenInfo
-	 */
+	private positionToOffset(pos: Position): number {
+		if (pos.line === -1 && pos.column === -1) {
+			// Special case for end of file
+			return this.sourceCode.reduce(
+				(acc, line) => acc + line.length + 1,
+				0,
+			);
+		}
+		let offset = 0;
+		for (let i = 0; i < pos.line; i++) {
+			offset += this.sourceCode[i].length + 1;
+		}
+		offset += pos.column;
+		return offset;
+	}
+
 	generate(fileIR: FileIR, info: TokenInfo[], projectRoot: string): string {
 		try {
 			const sourcePath = path.join(projectRoot, fileIR.relativePath);
@@ -34,22 +49,10 @@ class HTMLGenerator extends BaseGenerator {
 				throw new Error(`Source file not found: ${sourcePath}`);
 			}
 
-			const sourceContent = fs.readFileSync(sourcePath, "utf-8");
-
-			const htmlContent = this.generateContent(
-				fileIR,
-				sourceContent,
-				info,
-			);
-
-			const templateData = this.prepareTemplateData(
-				fileIR,
-				htmlContent,
-				projectRoot,
-			);
-
-			const layout = this.config.template?.layout || "default";
-			return this.templateEngine.render(layout, templateData);
+			this.sourceContent = fs.readFileSync(sourcePath, "utf-8");
+			this.sourceCode = this.sourceContent.split("\n");
+			this.tokens = info;
+			return this.process();
 		} catch (error) {
 			throw new Error(
 				`Failed to generate HTML for ${fileIR.relativePath}: ${error}`,
@@ -58,145 +61,104 @@ class HTMLGenerator extends BaseGenerator {
 	}
 
 	/**
-	 * Generate HTML content (existing logic)
+	 * ## Process the source content with tokenInfos to generate markdown
+	 *
+	 * We use `<div><pre><code></code></pre></div>` regions to wrap all non-comment regions,
+	 * and regard all comment tokens as normal markdown content.
+	 * Keep in mind that all tokens are sorted and guaranteed to have no overlap and,
+	 * cover the entire source code.
+	 *
+	 * @returns the full markdown content
 	 */
-	private generateContent(
-		_fileIR: FileIR,
-		sourceContent: string,
-		info: TokenInfo[],
-	): string {
-		// Check if we have comment tokens - if not, use original method
-		const hasCommentTokens = info.some((token) =>
-			token.meta.some((m) => m.type === "comment"),
-		);
+	process(): string {
+		let result = "";
+		let isCode = false;
+		for (const currentToken of this.tokens) {
+			const tokenContent = this.getTextFromSource(currentToken.span);
+			if (currentToken.meta.some((m) => m.type === "comment")) {
+				if (isCode) {
+					result += `</code></pre></div>`;
+					isCode = false;
+				}
+			} else {
+				if (!isCode) {
+					result += `<div><pre><code>`;
+					isCode = true;
+				}
+			}
+			const classes: string[] = [];
+			let id: string = "";
+			let anchor: string | undefined;
+			let content: string | undefined;
+			for (const meta of currentToken.meta) {
+				match(meta)
+					.with({ type: "comment" }, () => {
+						if (isCode) {
+							result += `</code></pre></div>\n\n`;
+							isCode = false;
+						}
+						content = marked(
+							parse(tokenContent)
+								.map((blk) => {
+									return blk.source
+										.map((src) => {
+											return src.tokens.description;
+										})
+										.join("\n");
+								})
+								.join("\n"),
+						);
+					})
+					.otherwise(() => {
+						if (!isCode) {
+							result += `<div><pre><code>\n`;
+							isCode = true;
+						}
 
-		if (!hasCommentTokens) {
-			// Tokens are already sorted by SortTokenPass
-			return this.generateHighlightedContent(
-				sourceContent,
-				info,
-				(content) => `<pre><code>${content}</code></pre>`,
-			);
+						match(meta)
+							.with({ type: "plaintext" }, () => {
+								content = tokenContent;
+							})
+							.with(
+								{ type: "symbolDefinition" },
+								({ symbolId }) => {
+									id = `id=symbol-${symbolId} `;
+								},
+							)
+							.with(
+								{ type: "symbolReference" },
+								({ symbolId }) => {
+									anchor = `#symbol-${symbolId}`;
+								},
+							);
+					});
+			}
+			if (content) {
+				result += content;
+			} else {
+				let tokenElement = `<span ${id}`;
+				if (classes.length > 0) {
+					tokenElement += `class="${classes.join(" ")}" `;
+				}
+				if (anchor) {
+					tokenElement += `><a href="${anchor}">`;
+				} else {
+					tokenElement += ">";
+				}
+				tokenElement += tokenContent;
+				if (anchor) tokenElement += "</a>";
+				tokenElement += "</span>";
+				result += tokenElement;
+			}
 		}
-
-		// Markdown-style rendering approach
-		return this.generateMarkdownStyleContent(
-			sourceContent,
-			info,
-			(content) => `<pre><code>${content}</code></pre>`,
-			(content) => `<div class="markdown-content">${content}</div>`,
-		);
+		return result;
 	}
 
-	/**
-	 * Prepare template data for handlebars rendering
-	 */
-	private prepareTemplateData(
-		fileIR: FileIR,
-		htmlContent: string,
-		_projectRoot: string,
-	): TemplateData {
-		const fileName = path.basename(fileIR.relativePath);
-		const cssPath = this.calculateCSSPath(fileIR);
-		const homePagePath = this.calculateHomePagePath(fileIR);
-
-		const templateData = {
-			title: `${fileName} - ${this.config.name || "Cire Documentation"}`,
-			content: htmlContent,
-			cssFiles: [cssPath],
-			homePagePath,
-			customCSS: this.config.template?.customCSS,
-			features: {
-				syntaxHighlighting:
-					this.config.features?.syntaxHighlighting ?? true,
-				hoverDocumentation:
-					this.config.features?.hoverDocumentation ?? true,
-				definitionJumping:
-					this.config.features?.definitionJumping ?? true,
-				commentMarkdown: this.config.features?.commentMarkdown ?? true,
-				navigationIndex: this.config.features?.navigationIndex ?? false,
-			},
-			layout: this.config.template?.layout || "default",
-		};
-
-		return templateData;
-	}
-
-	/**
-	 * Calculate CSS path relative to output file
-	 */
-	private calculateCSSPath(fileIR: FileIR): string {
-		const outputFileDir = path.dirname(fileIR.relativePath);
-		return path.relative(outputFileDir, "default.css") || "./default.css";
-	}
-
-	/**
-	 * Calculate home page path relative to output file
-	 */
-	private calculateHomePagePath(fileIR: FileIR): string {
-		const outputFileDir = path.dirname(fileIR.relativePath);
-		return (
-			path.relative(outputFileDir, "cireIndex.html") || "./cireIndex.html"
-		);
-	}
-
-	/**
-	 * Render comment content for HTML
-	 */
-	protected renderCommentContent(content: string): string {
-		const renderedContent = marked.parse(content);
-		return `<div class="token-comment">${renderedContent}</div>`;
-	}
-
-	/**
-	 * Render JSDoc description for HTML
-	 */
-	protected renderJSDocDescription(description: string): string {
-		return `<div class="jsdoc-description">${marked.parseInline(description)}</div>`;
-	}
-
-	/**
-	 * Render JSDoc tags for HTML
-	 */
-	protected renderJSDocTags(tags: commentParser.Spec[]): string {
-		let html = '<div class="jsdoc-tags">';
-		for (const tag of tags) {
-			html += this.renderJSDocTag(tag);
-		}
-		html += "</div>";
-		return html;
-	}
-
-	/**
-	 * Render individual JSDoc tag for HTML
-	 */
-	protected renderJSDocTag(tag: commentParser.Spec): string {
-		const tagName = tag.tag || "";
-		const name = tag.name || "";
-		const description = tag.description || "";
-
-		let tagContent = `<span class="jsdoc-tag-name">@${tagName}</span>`;
-
-		if (name) {
-			tagContent += ` <span class="jsdoc-tag-name">${escapeHtml(name)}</span>`;
-		}
-
-		if (description) {
-			tagContent += ` <span class="jsdoc-tag-description">${marked.parseInline(description)}</span>`;
-		}
-
-		return `<div class="jsdoc-tag">${tagContent}</div>`;
-	}
-
-	/**
-	 * Render JSDoc comment wrapper for HTML
-	 */
-	protected renderJSDocComment(jsdoc: commentParser.Block): string {
-		let html = this.renderJSDocDescription(jsdoc.description);
-		html += this.renderJSDocTags(jsdoc.tags);
-		return `<span class="token-comment jsdoc-comment">${html}</span>`;
+	private getTextFromSource(span: TextSpan) {
+		const startOffset = this.positionToOffset(span.start);
+		const endOffset = this.positionToOffset(span.end);
+		return this.sourceContent.slice(startOffset, endOffset);
 	}
 }
-
 export { HTMLGenerator };
 export default HTMLGenerator;
