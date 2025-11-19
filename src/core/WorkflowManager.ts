@@ -3,14 +3,19 @@ import { SCIPAnalyzer } from "../analyzer/SCIPAnalyzer";
 import { TSHighLighter } from "../analyzer/TSHighlighter";
 import { HTMLGenerator } from "../generator/HTMLGenerator";
 import { MarkdownGenerator } from "../generator/MarkdownGenerator";
-import { CommentMergePass, MergeTokenPass, SortTokenPass } from "../passes";
-import type { CireConfig, FileIR, TokenInfo } from "../types";
+import {
+	CommentMergePass,
+	FillPlaintextPass,
+	MergeTokenPass,
+	SortTokenPass,
+} from "../passes";
+import type { CireConfig, DocGenerator, FileIR, TokenInfo } from "../types";
 
 export class WorkflowManager {
 	private tsHighlighter: TSHighLighter;
 	private scipAnalyzer: SCIPAnalyzer | null = null;
 	private commentAnalyzer: CommentAnalyzer;
-	private generator: HTMLGenerator | MarkdownGenerator;
+	private generator: DocGenerator;
 	private config: CireConfig;
 
 	constructor(config: CireConfig) {
@@ -105,11 +110,13 @@ export class WorkflowManager {
 		const sortPass = new SortTokenPass();
 		const mergePass = new MergeTokenPass();
 		const commentMergePass = new CommentMergePass();
+		const fillPlaintextPass = new FillPlaintextPass();
 
-		// Process tokens through the pipeline: sort → merge → comment merge
+		// Process tokens through the pipeline: sort → merge → comment merge → fill plaintext
 		const sortedTokens = sortPass.process(tokens);
 		const mergedTokens = mergePass.process(sortedTokens);
-		const finalTokens = commentMergePass.process(mergedTokens);
+		const commentMergedTokens = commentMergePass.process(mergedTokens);
+		const finalTokens = fillPlaintextPass.process(commentMergedTokens);
 
 		return finalTokens;
 	}

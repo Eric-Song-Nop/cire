@@ -1,4 +1,5 @@
 import type { TokenInfo } from "../types";
+import { comparePositions } from "../utils/position-utils";
 import type { TokenInfoPass } from "./TokenInfoPass";
 
 /**
@@ -19,7 +20,7 @@ export class FillPlaintextPass implements TokenInfoPass {
 			const tokenStart = token.span.start;
 
 			// If there's a gap between lastEnd and tokenStart, fill it with plaintext
-			if (this.comparePositions(tokenStart, lastEnd) > 0) {
+			if (comparePositions(tokenStart, lastEnd) > 0) {
 				result.push({
 					meta: [{ type: "plaintext" }],
 					span: {
@@ -44,18 +45,5 @@ export class FillPlaintextPass implements TokenInfoPass {
 		});
 
 		return result;
-	}
-
-	/**
-	 * Compare two positions. Return -1 if a < b, 0 if equal, 1 if a > b
-	 */
-	private comparePositions(
-		posA: { line: number; column: number },
-		posB: { line: number; column: number },
-	): number {
-		if (posA.line !== posB.line) {
-			return posA.line - posB.line;
-		}
-		return posA.column - posB.column;
 	}
 }

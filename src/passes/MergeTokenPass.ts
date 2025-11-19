@@ -17,6 +17,7 @@
  */
 
 import type { MetaInfo, TokenInfo } from "../types";
+import { comparePositions, isSamePosition } from "../utils/position-utils";
 import type { TokenInfoPass } from "./TokenInfoPass";
 
 export class MergeTokenPass implements TokenInfoPass {
@@ -47,9 +48,7 @@ export class MergeTokenPass implements TokenInfoPass {
 			);
 
 			// Create segment for the range [currentPosition, nextEvent.position)
-			if (
-				this.comparePositions(currentPosition, nextEvent.position) < 0
-			) {
+			if (comparePositions(currentPosition, nextEvent.position) < 0) {
 				const segment = this.createSegment(
 					currentPosition,
 					nextEvent.position,
@@ -103,7 +102,7 @@ export class MergeTokenPass implements TokenInfoPass {
 		if (activeTokens.length > 0 && !isEndEvent) {
 			const nextEnd = this.findNextEnd(activeTokens);
 			// Return whichever comes first: next start or next end
-			if (this.comparePositions(nextEnd, nextPosition) < 0) {
+			if (comparePositions(nextEnd, nextPosition) < 0) {
 				return { position: nextEnd, nextIndex: startIndex };
 			}
 		}
@@ -119,7 +118,7 @@ export class MergeTokenPass implements TokenInfoPass {
 		column: number;
 	} {
 		return activeTokens.reduce((earliest, token) => {
-			if (this.comparePositions(token.span.end, earliest) < 0) {
+			if (comparePositions(token.span.end, earliest) < 0) {
 				return token.span.end;
 			}
 			return earliest;
@@ -141,7 +140,7 @@ export class MergeTokenPass implements TokenInfoPass {
 		// Add new tokens that start at this position
 		while (
 			newStartIndex < tokens.length &&
-			this.isSamePosition(tokens[newStartIndex].span.start, position)
+			isSamePosition(tokens[newStartIndex].span.start, position)
 		) {
 			updatedActiveTokens.push(tokens[newStartIndex]);
 			newStartIndex++;
@@ -149,7 +148,7 @@ export class MergeTokenPass implements TokenInfoPass {
 
 		// Remove tokens that end at this position
 		const filteredTokens = updatedActiveTokens.filter(
-			(token) => !this.isSamePosition(token.span.end, position),
+			(token) => !isSamePosition(token.span.end, position),
 		);
 
 		return { newStartIndex, updatedActiveTokens: filteredTokens };
@@ -177,28 +176,5 @@ export class MergeTokenPass implements TokenInfoPass {
 			span: { start, end },
 			meta: allMeta,
 		};
-	}
-
-	/**
-	 * Compare two positions. Return -1 if a < b, 0 if equal, 1 if a > b
-	 */
-	private comparePositions(
-		posA: { line: number; column: number },
-		posB: { line: number; column: number },
-	): number {
-		if (posA.line !== posB.line) {
-			return posA.line - posB.line;
-		}
-		return posA.column - posB.column;
-	}
-
-	/**
-	 * Check if two positions are the same
-	 */
-	private isSamePosition(
-		posA: { line: number; column: number },
-		posB: { line: number; column: number },
-	): boolean {
-		return posA.line === posB.line && posA.column === posB.column;
 	}
 }
