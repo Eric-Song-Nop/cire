@@ -30,7 +30,7 @@ export class SplitByLinePass implements TokenInfoPass {
 				if (!tokensByLine.has(lineNumber)) {
 					tokensByLine.set(lineNumber, []);
 				}
-				tokensByLine.get(lineNumber)!.push(token);
+				tokensByLine.get(lineNumber)?.push(token);
 			} else {
 				// Multi-line token - split it and add each part to its respective line
 				const splitTokens = this.splitTokenByLines(token);
@@ -39,13 +39,13 @@ export class SplitByLinePass implements TokenInfoPass {
 					if (!tokensByLine.has(lineNumber)) {
 						tokensByLine.set(lineNumber, []);
 					}
-					tokensByLine.get(lineNumber)!.push(splitToken);
+					tokensByLine.get(lineNumber)?.push(splitToken);
 				}
 			}
 		}
 
 		// Now process each line's tokens and add line position markers
-		for (const [lineNumber, lineTokens] of tokensByLine) {
+		for (const [, lineTokens] of tokensByLine) {
 			// Sort tokens by start column to determine position
 			const sortedTokens = [...lineTokens].sort(
 				(a, b) => a.span.start.column - b.span.start.column,
