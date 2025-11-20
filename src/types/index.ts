@@ -67,7 +67,10 @@ export type MetaInfo =
 	| { type: "symbolDefinition"; symbolId: string; symbolName: string }
 	| { type: "symbolReference"; symbolId: string; symbolName: string }
 	| { type: "comment" }
-	| { type: "plaintext" };
+	| { type: "plaintext" }
+	| { type: "startOfLine" }
+	| { type: "endOfLine" }
+	| { type: "endOfFile" };
 
 export type TokenInfo = {
 	meta: MetaInfo[];

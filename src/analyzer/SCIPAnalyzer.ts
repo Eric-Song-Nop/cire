@@ -1,7 +1,7 @@
 /**
  * # Scip Analyzer Class
  *
- * SCIPAnalyzer uses a SCIP index file to provide lsp documentation
+ * SCIPAnalyzer uses a SCIP index file to provide lsp documentation.
  * [SCIP](https://github.com/sourcegraph/scip) is the source indexing format provided by Sourcegraph.
  * Which is a lsif compatible implementation with accelerated with google-protobuf.
  */
@@ -107,7 +107,7 @@ export class SCIPAnalyzer implements Analyzer {
 
 			// Generate symbol ID for this occurrence
 			const symbolId = this.generateSymbolId(occurrence.symbol);
-			const symbolName = sym.display_name;
+			const symbolName = sym.display_name || sym.symbol;
 
 			// Check if this is a definition or reference
 			const isDefinition =

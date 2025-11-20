@@ -1,4 +1,4 @@
-import type { TokenInfo } from "../types";
+import type { Position, TokenInfo } from "../types";
 import { comparePositions } from "../utils/position-utils";
 import type { TokenInfoPass } from "./TokenInfoPass";
 
@@ -15,6 +15,7 @@ export class FillPlaintextPass implements TokenInfoPass {
 		const result: TokenInfo[] = [];
 		let lastEnd = { line: 0, column: 0 };
 
+		let eofPos: Position | null = null;
 		// Assume tokens are already sorted by position
 		for (const token of tokens) {
 			const tokenStart = token.span.start;
@@ -32,17 +33,26 @@ export class FillPlaintextPass implements TokenInfoPass {
 
 			result.push(token);
 			lastEnd = token.span.end;
+			if (
+				token.meta.some((m) => {
+					return m.type === "endOfFile";
+				})
+			) {
+				eofPos = token.span.end;
+			}
 		}
 
-		// Add a plaintext token from last token's end to the end of file
-		// Use (-1, -1) to indicate "go to end of file"
-		result.push({
-			meta: [{ type: "plaintext" }],
-			span: {
-				start: lastEnd,
-				end: { line: -1, column: -1 }, // Special marker for end of file
-			},
-		});
+		if (!eofPos) {
+			// Add a plaintext token from last token's end to the end of file
+			// Use (-1, -1) to indicate "go to end of file"
+			result.push({
+				meta: [{ type: "plaintext" }],
+				span: {
+					start: lastEnd,
+					end: { line: -1, column: -1 }, // Special marker for end of file
+				},
+			});
+		}
 
 		return result;
 	}

@@ -1,4 +1,5 @@
 import { CommentAnalyzer } from "../analyzer/CommentAnalyzer";
+import { FileEndAnalyzer } from "../analyzer/FileEndAnalyzer";
 import { SCIPAnalyzer } from "../analyzer/SCIPAnalyzer";
 import { TSHighLighter } from "../analyzer/TSHighlighter";
 import { HTMLGenerator } from "../generator/HTMLGenerator";
@@ -8,12 +9,14 @@ import {
 	FillPlaintextPass,
 	MergeTokenPass,
 	SortTokenPass,
+	SplitByLinePass,
 } from "../passes";
 import type { CireConfig, DocGenerator, FileIR, TokenInfo } from "../types";
 
 export class WorkflowManager {
 	private tsHighlighter: TSHighLighter;
 	private scipAnalyzer: SCIPAnalyzer | null = null;
+	private eofAnalyzer: FileEndAnalyzer | null = null;
 	private commentAnalyzer: CommentAnalyzer;
 	private generator: DocGenerator;
 	private config: CireConfig;
@@ -29,6 +32,7 @@ export class WorkflowManager {
 		const backend = config.outputFormat?.backend || "html";
 		if (backend === "markdown") {
 			this.generator = new MarkdownGenerator(config);
+			this.eofAnalyzer = new FileEndAnalyzer();
 		} else {
 			this.generator = new HTMLGenerator(config);
 		}
@@ -80,6 +84,10 @@ export class WorkflowManager {
 			allTokens.push(...scipTokens);
 		}
 
+		if (this.eofAnalyzer) {
+			allTokens.push(...this.eofAnalyzer.analyze(fileIR, projectRoot));
+		}
+
 		// Step 4: Merge and deduplicate tokens
 		console.log("  → Merging and deduplicating tokens...");
 		const mergedTokens = this.mergeTokens(allTokens);
@@ -111,12 +119,20 @@ export class WorkflowManager {
 		const mergePass = new MergeTokenPass();
 		const commentMergePass = new CommentMergePass();
 		const fillPlaintextPass = new FillPlaintextPass();
+		const splitByLinePass = new SplitByLinePass();
 
 		// Process tokens through the pipeline: sort → merge → comment merge → fill plaintext
 		const sortedTokens = sortPass.process(tokens);
 		const mergedTokens = mergePass.process(sortedTokens);
 		const commentMergedTokens = commentMergePass.process(mergedTokens);
-		const finalTokens = fillPlaintextPass.process(commentMergedTokens);
+		const filledTokens = fillPlaintextPass.process(commentMergedTokens);
+
+		// Apply SplitByLinePass only for Markdown output to ensure tokens don't span multiple lines
+		const backend = this.config.outputFormat?.backend || "html";
+		const finalTokens =
+			backend === "markdown"
+				? splitByLinePass.process(filledTokens)
+				: filledTokens;
 
 		return finalTokens;
 	}
