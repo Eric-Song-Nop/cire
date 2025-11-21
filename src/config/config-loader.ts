@@ -58,6 +58,7 @@ export class ConfigLoader {
 		}
 
 		const fullPath = resolve(process.cwd(), configPath);
+		const configDir = resolve(fullPath, "..");
 
 		// If config file doesn't exist, return default config
 		if (!existsSync(fullPath)) {
@@ -85,7 +86,7 @@ export class ConfigLoader {
 			this.validateConfig(userConfig, fullPath);
 
 			// Merge user config with defaults
-			return this.mergeConfigs(this.defaultConfig, userConfig);
+			return this.mergeConfigs(this.defaultConfig, userConfig, configDir);
 		} catch (error) {
 			if (error instanceof ConfigError) {
 				throw error;
@@ -111,6 +112,7 @@ export class ConfigLoader {
 	private mergeConfigs(
 		defaultConfig: CireConfig,
 		userConfig: Partial<CireConfig>,
+		configDir: string,
 	): CireConfig {
 		const resolvedConfig = {
 			...defaultConfig,
@@ -143,15 +145,37 @@ export class ConfigLoader {
 				: defaultConfig.features,
 		};
 
-		// Resolve paths relative to current working directory
+		// Resolve paths relative to config file directory
 		resolvedConfig.input.root = resolve(
-			process.cwd(),
+			configDir,
 			resolvedConfig.input.root,
 		);
 		resolvedConfig.output.directory = resolve(
-			process.cwd(),
+			configDir,
 			resolvedConfig.output.directory,
 		);
+
+		// Resolve other optional paths
+		if (resolvedConfig.lsp?.indexPath) {
+			resolvedConfig.lsp.indexPath = resolve(
+				configDir,
+				resolvedConfig.lsp.indexPath,
+			);
+		}
+
+		if (resolvedConfig.template?.templateDir) {
+			resolvedConfig.template.templateDir = resolve(
+				configDir,
+				resolvedConfig.template.templateDir,
+			);
+		}
+
+		if (resolvedConfig.template?.customCSS) {
+			resolvedConfig.template.customCSS = resolve(
+				configDir,
+				resolvedConfig.template.customCSS,
+			);
+		}
 
 		return resolvedConfig;
 	}
